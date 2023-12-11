@@ -1,38 +1,223 @@
+body {
+  background-color: #081d28;
+  font-family: 'Syne';
+}
+
 .App {
+  text-align: center;
+  color: white;
+  font-size: large;
+}
+
+.joinForm {
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+.joinForm h1 {
   color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.joinForm input {
+  margin: 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 250px;
+  height: 20px;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.joinForm button {
+  margin: 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 280px;
+  height: 30px;
+  cursor: pointer;
+}
+
+.chat {
+  float: right;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  font-family: "Open-Sans";
+  background-color: #154C68;
+  border-radius: 4px;
+}
+
+.chat h1 {
+  color: white;
+  text-align: center;
+  padding: 10px;
+  font-family: 'Syne';
+}
+
+.chat input {
+  margin: 10px;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.chat button {
+  margin: 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 100px;
+  height: 30px;
+  cursor: pointer;    
+}
+
+.chatMessages {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 60px;
+  background-color: #a3d4ec;
+  padding: 10px;
+
+}
+
+.chatInputWithButton {
+  text-align: center;
+  position: sticky;
+  bottom: 0;
+  background-color: #154C68;
+  padding: 50px;
+}
+
+.chatInputWithButton button {
+  font-family: 'Syne';
+  color: black;
+  background-color: #a3d4ec;
+}
+
+.cell {
+  background-color: #2B789D;
+  border: 1px solid white;
+  color: white;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+}
+
+.middleCell {
+  background-color: #DFDF54 ;
+  border: 1px solid white;
+  color:black;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+
+  font-size: 20px;
+}
+
+.scrabble-board {
+  background-color: #154C68;
+  display: grid;
+  grid-template-columns: repeat(15, 40px); /* 15 columns each with 40px width */
+  grid-template-rows: repeat(15, 40px); /* 15 rows each with 40px height */
+  gap: 2px;
+  padding: 40px;
+}
+
+.row {
+  display: flex;
+  gap: 2px;
+}
+
+.app-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  height: 100vh;
+}
+
+.game-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 50px;
+}
+
+.chat-area {
+  margin-left: 200px;
+}
+
+.lettersAndOptions {
+  padding-top: 20px;
+  padding-bottom: 20px;
+  clear: both;
+}
+
+.tileRack {
+  border: solid 2px white;
+  text-align: center;
+  color: white;
+  display: flex;
+  justify-content: center;
+  gap: 5px; 
+  padding: 10px;
+  background-color:#154C68;
+  min-width: 328px;
+  min-height: 46px;
+}
+
+.tile{
+  color: black;
+  font-weight: 700;
+  border: 1px solid black;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  background-color: rgb(236, 223, 209);
+  cursor: grab;
+  position: relative;
+}
+
+.placeForTile {
+  color: black;
+  font-weight: 700;
+  border: 1px solid black;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  background-color: #154C68;
+  position: relative;
+}
+
+.letter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.value {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  font-size: 12px;
+}
+
+.gameButton {
+  height: 40px;
+  background-color: #a3d4ec;
+}
+
+.buttons {
+  display: flex;
+  gap: 10px;
 }
