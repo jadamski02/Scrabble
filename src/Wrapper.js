@@ -41,13 +41,33 @@ export const Wrapper = () => {
 
     };
 
+    const updateRack = (event, id) => {
+
+        if (event?.dataTransfer) {
+        event.dataTransfer.dropEffect = 'move';
+        event.preventDefault();
+        }
+  
+        const newRack = tilesOnRack.map((singleTile) => {
+          if(singleTile.id == id) {
+            return {...singleTile, letter: "", value: null}
+          } else {
+            return singleTile;
+          }
+  
+        });
+  
+        setTilesOnRack(newRack);
+
+      }
+
     useEffect(() => {
         // setNumberOfLetters(7 - tilesOnRack.length)
     }, [tilesOnRack])
 
     return (
 
-        <WrapperContext.Provider value={{ getTiles, tilesOnRack, setTilesOnRack }}>
+        <WrapperContext.Provider value={{ getTiles, tilesOnRack, setTilesOnRack, updateRack }}>
             <>
             <div className='app-container'>
       

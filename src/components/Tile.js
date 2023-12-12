@@ -1,21 +1,26 @@
 import React from 'react'
-import { WrapperData } from '../Wrapper'
+
 
 function Tile(props) {
 
-    // const { handleDragStart, handleDragEnd } = WrapperData()
-
-    const handleDragStart = (e) => {
-      console.log("drag start");
+    const handleDragStartFromTile = (e) => {
       const letter = props.letter;
-      e.dataTransfer.setData("text", letter);
+      e.dataTransfer.setData("letter", letter);
+      e.dataTransfer.setData("value", props.value);
+      e.dataTransfer.setData("tileId", props.id);
+      e.dataTransfer.setData("tileEvent", e);
    };
 
-    const handleDragEnd = (e) => {
-      const element = e.target;
-      console.log(element);
-        console.log("drag end");
-        props.updateRack(e);
+    const handleDragEndFromTile = (e) => {
+      // console.log("drag end");
+    };
+
+    const handleDragOverOnTile = (e) => {
+     
+    };
+
+    const handleDropOnTile = (e) => {
+
     };
 
     let tileClass = "tile";
@@ -28,9 +33,11 @@ function Tile(props) {
 
   return (
     <div className={tileClass}
-         draggable={isDraggable} 
-         onDragStart={handleDragStart}
-         onDragEnd={handleDragEnd}
+         draggable={isDraggable}
+         onDrop={handleDropOnTile}
+         onDragOver={handleDragOverOnTile}
+         onDragStart={handleDragStartFromTile}
+         onDragEnd={handleDragEndFromTile}
          key={props.id}
           >
           <div className='letter'>{props.letter}</div>

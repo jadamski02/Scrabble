@@ -4,22 +4,7 @@ import { WrapperData } from '../Wrapper';
 
 function TileRack() {
 
-    const { tilesOnRack, setTilesOnRack } = WrapperData();
-
-    const updateRack = (event, id) => {
-      event.preventDefault();
-
-      const newRack = tilesOnRack.map((singleTile) => {
-        if(singleTile.id === id) {
-          return {...singleTile, letter: "", value: null}
-        } else {
-          return singleTile;
-        }
-
-      });
-
-      setTilesOnRack(newRack);
-    }
+    const { tilesOnRack } = WrapperData();
 
   return (
     <div className='lettersAndOptions'>
@@ -27,7 +12,7 @@ function TileRack() {
         <div className='tileRack'>
         {tilesOnRack.map((tile) =>
 
-        <Tile key={tile.id} letter={tile.letter} value={tile.value} updateRack={(e) => updateRack(e, tile.id)}/>
+        <Tile key={tile.id} id={tile.id} letter={tile.letter} value={tile.value}/>
 
             
         )}

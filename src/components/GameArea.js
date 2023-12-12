@@ -6,7 +6,7 @@ import Buttons from './Buttons';
 function GameArea() {
   return (
     <div className="game-area">
-        <ScrabbleBoard />
+        <ScrabbleBoard/>
         <TileRack />
         <Buttons />
   </div>

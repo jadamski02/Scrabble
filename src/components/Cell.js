@@ -6,22 +6,34 @@ function Cell(props) {
     if(props.rowIndex === 7 && props.colIndex === 7) cellStyle = "middleCell";
     if(props.letter !== '') cellStyle="tile";
 
-    const handleDrop = (event) => {
-      props.handleDrop(event, props.rowIndex, props.colIndex);
+    const handleDropOnCell = (event) => {
+      props.handleDropOnCell(event, props.rowIndex, props.colIndex);
     };
   
-    const allowDrop = (event) => {
-      props.allowDrop(event);
+    const handleDragOverOnCell = (event) => {
+      props.allowDropOnCell(event);
+    };
+
+    const handleDragStartFromCell = (e) => {
+      ///
+    };
+
+    const handleDragEndFromCell = (event) => {
+      ///
     };
 
   return (
     <div
+    draggable
         className={cellStyle}
-        onDrop={handleDrop}
-        onDragOver={allowDrop}
+        onDrop={handleDropOnCell}
+        onDragOver={handleDragOverOnCell}
+        onDragStart={handleDragStartFromCell}
+        onDragEnd={handleDragEndFromCell}
         >
         {props.rowIndex === 7 && props.colIndex === 7 && props.cell.letter === '' ? <span>&#10040;</span> : ""}
-        {props.cell.letter}
+        <div className='letter'>{props.cell.letter}</div>
+        <div className='value'>{props.cell.value}</div>
     </div>
   )
 }

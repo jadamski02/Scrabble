@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Cell from './Cell';
+import { WrapperData } from '../Wrapper';
 
 const createEmptyBoard = (rows, cols) => {
   const board = [];
@@ -8,36 +9,41 @@ const createEmptyBoard = (rows, cols) => {
       row: Math.floor(i / cols),
       col: i % cols,
       letter: '',
+      value: ''
     });
   }
   return board;
 };
 
 const ScrabbleBoard = () => {
+  const { updateRack } = WrapperData();
   const [board, setBoard] = useState([]);
 
-  const allowDrop = (event) => {
-    const isCell = event.target.classList.contains('cell');
+  const allowDropOnCell = (event) => {
+    const isCell = event.target.classList.contains('cell') || event.target.classList.contains('middleCell');
     if(isCell) {
       event.preventDefault();
     }
-    console.log("allow drop");
   };
   
-  const handleDrop = (event, rowIndex, colIndex) => {
+  const handleDropOnCell = (event, rowIndex, colIndex) => {
     event.preventDefault();
-    console.log("handle drop");
   
-    const letter = event.dataTransfer.getData("text");
+    const letter = event.dataTransfer.getData("letter");
+    const value = event.dataTransfer.getData("value");
+    const tileId = event.dataTransfer.getData("tileId");
+    const tileEvent = event.dataTransfer.getData("tileEvent");
+    console.log(tileId)
 
     const updatedBoard = board.map((cell) => {
       if(cell.row === rowIndex && cell.col === colIndex) {
-        return {...cell, letter};
+        return {...cell, letter, value};
       }
       return cell;
       });
 
       setBoard(updatedBoard);
+      updateRack(tileEvent, tileId);
       
     };
 
@@ -55,8 +61,9 @@ const ScrabbleBoard = () => {
           colIndex={cell.col}
           rowIndex={cell.row}
           letter={cell.letter}
-          handleDrop={(event) => handleDrop(event, cell.row, cell.col)}
-          allowDrop={(event) => allowDrop(event)}
+          value={cell.value}
+          handleDropOnCell={(event) => handleDropOnCell(event, cell.row, cell.col)}
+          allowDropOnCell={(event) => allowDropOnCell(event)}
         />
       ))}
     </div>
