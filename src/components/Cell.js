@@ -4,7 +4,7 @@ function Cell(props) {
 
     let cellStyle = "cell";
     if(props.rowIndex === 7 && props.colIndex === 7) cellStyle = "middleCell";
-    if(props.letter !== '') cellStyle="tile";
+    if(props.value !== '') cellStyle="tile";
 
     const handleDropOnCell = (event) => {
       props.handleDropOnCell(event, props.rowIndex, props.colIndex);

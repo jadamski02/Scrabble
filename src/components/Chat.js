@@ -1,19 +1,20 @@
 import React from 'react';
 import { useEffect } from 'react';
+import { WrapperData } from '../Wrapper';
 
+function Chat() {
 
-function Chat(props) {
-
+  const { room, socket, login, message, roomName, setMessage, setMessageReceived, numberOfTilesLeft, connectedUsers, messageReceived } = WrapperData();
 
   const sendMessage = () => {
-    if(props.message !== "") {
-      props.socket.emit("send_message", { username: props.username, message: props.message, room: props.room });
-      props.setMessage("");
+    if(message !== "") {
+      socket.emit("send_message", { login: login, message: message, room: roomName });
+      setMessage("");
     }
   };
 
   useEffect(() => {
-    props.socket.on("receive_message", (data) => {
+    socket.on("receive_message", (data) => {
       const currentDate = new Date();
         var hours = currentDate.getHours();
         var minutes = currentDate.getMinutes();
@@ -22,42 +23,63 @@ function Chat(props) {
         if(minutes < 10) minutes = "0" + minutes;
         if(seconds < 10) seconds = "0" + seconds;
         const timeStamp = hours + ":" + minutes + ":" + seconds;
-      props.setMessageReceived((prevMessages) => 
+      setMessageReceived((prevMessages) => 
         [
           ...prevMessages,
           {
             "message": data.message,
             "time": timeStamp,
             "date": currentDate,
-            "username": data.username
+            "login": data.login
           }
         ]
       );
     });
     return () => {
-        if (props.socket) {
-          props.socket.off("receive_message");
+        if (socket) {
+          socket.off("receive_message");
         }
       };
-  }, [props.socket]);
+  }, [socket]);
+
+  let odmianaPozostalo = "Pozostało"
+  let odmianaPlytek = "płytek";
+  const liczba = numberOfTilesLeft
+  if(liczba % 10 === 2 || liczba % 10 === 3 || liczba % 10 === 4) {
+    odmianaPozostalo = "Pozostały"
+    odmianaPlytek = "płytki";
+  }
+  if(liczba == 1) {
+    odmianaPozostalo = "Pozostała";
+    odmianaPlytek = "Płytka";
+  } 
   
   return (
     <div className='chat'>
 
-      <h1>Czat - pokój {props.room}</h1>
+      <h1>Czat - pokój {room}</h1>
+
+      <div className="userList">
+      <h4>Użytkownicy</h4>
+        <ul>
+          {connectedUsers.map((user) => (
+              <li key={user.socketId}>{user.login}</li>
+          ))}
+        </ul>
+      </div>
+
+      <h3>{odmianaPozostalo} <span style={{color: "orange"}}>{liczba}</span> {odmianaPlytek}</h3>
 
       <div className='chatMessages'>
-        
-        {props.messageReceived.map((mes) => 
-          <p key={mes.date}>{mes.username}: {mes.message} - {mes.time}</p>
-        )}
-
-      </div>
+      {messageReceived && messageReceived.map((mes) =>
+        <p key={mes.date}>{mes.login}: {mes.message} - {mes.time}</p>
+      )}
+    </div>
 
       <div className='chatInputWithButton'>
 
-        <input value={props.message} placeholder='Wiadomość...' onChange={(event) => {
-          props.setMessage(event.target.value);
+        <input value={message} placeholder='Wiadomość...' onChange={(event) => {
+          setMessage(event.target.value);
         }}
         />
         <br/>

@@ -1,5 +1,5 @@
 import React from 'react';
-import Tile from './Tile';
+import PlaceForTile from './PlaceForTile';
 import { WrapperData } from '../Wrapper';
 
 function TileRack() {
@@ -10,11 +10,10 @@ function TileRack() {
     <div className='lettersAndOptions'>
 
         <div className='tileRack'>
-        {tilesOnRack.map((tile) =>
+        {tilesOnRack.map((placeForTile) =>
 
-        <Tile key={tile.id} id={tile.id} letter={tile.letter} value={tile.value}/>
+        <PlaceForTile key={placeForTile.id} placeForTile={placeForTile} />
 
-            
         )}
         </div>
 

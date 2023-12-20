@@ -4,23 +4,24 @@ import React from 'react'
 function Tile(props) {
 
     const handleDragStartFromTile = (e) => {
+      console.log(props.id)
       const letter = props.letter;
       e.dataTransfer.setData("letter", letter);
       e.dataTransfer.setData("value", props.value);
-      e.dataTransfer.setData("tileId", props.id);
+      e.dataTransfer.setData("placeId", props.id);
       e.dataTransfer.setData("tileEvent", e);
    };
 
     const handleDragEndFromTile = (e) => {
-      // console.log("drag end");
+      ///
     };
 
     const handleDragOverOnTile = (e) => {
-     
+     ///
     };
 
     const handleDropOnTile = (e) => {
-
+      ///
     };
 
     let tileClass = "tile";

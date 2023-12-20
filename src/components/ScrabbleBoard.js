@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Cell from './Cell';
 import { WrapperData } from '../Wrapper';
 
+
 const createEmptyBoard = (rows, cols) => {
   const board = [];
   for (let i = 0; i < rows * cols; i++) {
@@ -16,7 +17,8 @@ const createEmptyBoard = (rows, cols) => {
 };
 
 const ScrabbleBoard = () => {
-  const { updateRack } = WrapperData();
+
+  const { socket, room, removeTileFromRack } = WrapperData();
   const [board, setBoard] = useState([]);
 
   const allowDropOnCell = (event) => {
@@ -31,9 +33,9 @@ const ScrabbleBoard = () => {
   
     const letter = event.dataTransfer.getData("letter");
     const value = event.dataTransfer.getData("value");
-    const tileId = event.dataTransfer.getData("tileId");
+    const placeId = event.dataTransfer.getData("placeId");
     const tileEvent = event.dataTransfer.getData("tileEvent");
-    console.log(tileId)
+
 
     const updatedBoard = board.map((cell) => {
       if(cell.row === rowIndex && cell.col === colIndex) {
@@ -43,13 +45,18 @@ const ScrabbleBoard = () => {
       });
 
       setBoard(updatedBoard);
-      updateRack(tileEvent, tileId);
+      removeTileFromRack(tileEvent, placeId);
+
+      socket.emit("update_board", { room: room, board: updatedBoard });
       
     };
 
   useEffect(() => {
     setBoard(createEmptyBoard(15, 15));
-    console.log(board)
+    socket.on("update_board", ({ board }) => {
+      setBoard(board);
+    });
+
   }, []);
 
   return (

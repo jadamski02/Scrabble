@@ -9,31 +9,84 @@ body {
   font-size: large;
 }
 
+.joinForm, 
+.login,
+.signUp {
+  color: white;
+  text-align: center;
+  padding: 30px;
+  margin: 30px;
+}
+
 .joinForm {
+  float: left;
+}
+
+.joinFormBox {
+  margin-bottom: 15px;
+  text-align: center;
+  width: 300px;
+}
+
+.availableRooms {
+  padding: 30px;
+  margin: 30px;
+  align-items: center;
+  float: left;
+}
+
+.loggedIn h1, h3 {
+  color: white;
   text-align: center;
 }
 
-.joinForm h1 {
+.room {
   color: white;
+  background-color:#154C68;
+  border: solid 1px white;
+  padding: 10px;
 }
 
-.joinForm input {
+.joinForm input,
+.login input,
+.signUp input {
   margin: 10px;
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  width: 250px;
   height: 20px;
+  font-family: 'Syne';
 }
 
-.joinForm button {
+.joinForm button,
+.login button,
+.signUp button,
+.logOutBtn button {
   margin: 10px;
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  width: 280px;
   height: 30px;
   cursor: pointer;
+  text-align: center;
+  line-height: 10px;
+  font-family: 'Syne';
+}
+
+.logOutBtn {
+  float: right;
+}
+
+.availableRooms button {
+  margin: 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  height: 25px;
+  cursor: pointer;
+  text-align: center;
+  line-height: 5px;
+  font-family: 'Syne';
 }
 
 .chat {
@@ -41,7 +94,8 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  font-family: "Open-Sans";
+  font-family: 'Syne';
+  color: white;
   background-color: #154C68;
   border-radius: 4px;
 }
@@ -51,6 +105,23 @@ body {
   text-align: center;
   padding: 10px;
   font-family: 'Syne';
+}
+
+.chat h3 {
+  color: white;
+  text-align: center;
+  padding: 10px;
+  font-family: 'Syne';
+}
+
+.userList ul {
+  list-style-type: circle;
+  font-family: 'Syne';
+  color: white;
+}
+
+.userList h4 {
+  padding-left: 10px;
 }
 
 .chat input {
@@ -121,8 +192,8 @@ body {
 .scrabble-board {
   background-color: #154C68;
   display: grid;
-  grid-template-columns: repeat(15, 40px); /* 15 columns each with 40px width */
-  grid-template-rows: repeat(15, 40px); /* 15 rows each with 40px height */
+  grid-template-columns: repeat(15, 40px);
+  grid-template-rows: repeat(15, 40px);
   gap: 2px;
   padding: 40px;
 }
@@ -220,4 +291,8 @@ body {
 .buttons {
   display: flex;
   gap: 10px;
+}
+
+.loginMessage {
+  color: red;
 }
