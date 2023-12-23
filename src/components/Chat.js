@@ -1,20 +1,29 @@
 import React from 'react';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { WrapperData } from '../Wrapper';
 
 function Chat() {
 
-  const { room, socket, login, message, roomName, setMessage, setMessageReceived, numberOfTilesLeft, connectedUsers, messageReceived } = WrapperData();
+  const [message, setMessage] = useState("");
+  const [messageReceived, setMessageReceived] = useState([]);
+
+  const { setIsInRoom, room, socket, login, numberOfTilesLeft, connectedUsers} = WrapperData();
 
   const sendMessage = () => {
     if(message !== "") {
-      socket.emit("send_message", { login: login, message: message, room: roomName });
+      socket.emit("send_message", { login: login, message: message, room: room });
       setMessage("");
     }
   };
 
+  const handleRoomQuit = () => {
+    setIsInRoom(false);
+    socket.emit("leave_room", room);
+  }
+
   useEffect(() => {
     socket.on("receive_message", (data) => {
+      console.log(data)
       const currentDate = new Date();
         var hours = currentDate.getHours();
         var minutes = currentDate.getMinutes();
@@ -57,7 +66,11 @@ function Chat() {
   return (
     <div className='chat'>
 
-      <h1>Czat - pokój {room}</h1>
+    <h1>Czat - pokój {room}</h1>
+
+      <div className='chatQuitBtn'>
+        <button onClick={handleRoomQuit}>Opuść pokój</button>
+      </div>
 
       <div className="userList">
       <h4>Użytkownicy</h4>

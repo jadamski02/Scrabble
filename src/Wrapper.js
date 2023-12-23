@@ -29,8 +29,6 @@ export const Wrapper = () => {
     const [email, setEmail] = useState(cookies.get("email"));
     const [token, setToken] = useState(cookies.get("token"));
     const [room, setRoom] = useState("");
-    const [message, setMessage] = useState("");
-    const [messageReceived, setMessageReceived] = useState([]);
     const [numberOfLettersToGet, setNumberOfLettersToGet] = useState(7);
     const [numberOfTilesLeft, setNumberOfTilesLeft] = useState(100);
     const [connectedUsers, setConnectedUsers] = useState([]);
@@ -50,8 +48,19 @@ export const Wrapper = () => {
         });
 
         socket.on("updated_rooms_list", (updatedRoomsList) => {
-            setAvailableRooms(updatedRoomsList);
-          });
+            const roomsWithUsers = updatedRoomsList;
+    
+            const roomsList = Object.keys(roomsWithUsers);
+            const formattedRooms = roomsList.map(room => {
+                return {
+                    roomName: room,
+                    userCount: roomsWithUsers[room].length 
+                };
+            });
+    
+            setAvailableRooms(formattedRooms);
+
+        });
 
         socket.on("user_disconnected", (data) => {
             setConnectedUsers((prevUsers) =>
@@ -121,7 +130,6 @@ export const Wrapper = () => {
         })
         .then((res) => {
             if(res.status === 200) {
-                console.log(res.data)
             const { login, email, token, role_id, } = res.data;
             cookies.set("token", token);
             setToken(token);

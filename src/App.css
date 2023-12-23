@@ -296,3 +296,18 @@ body {
 .loginMessage {
   color: red;
 }
+
+.chatQuitBtn {
+  text-align: center;
+}
+
+.chatQuitBtn button {
+  color:crimson;
+  margin: 10px;
+  border-radius: 4px;
+  height: 25px;
+  cursor: pointer;
+  text-align: center;
+  line-height: 5px;
+  font-family: 'Syne';
+}

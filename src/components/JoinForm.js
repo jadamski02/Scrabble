@@ -17,12 +17,9 @@ function JoinForm() {
 
   const joinRoom = () => {
     if(room === "") {
-      console.log(roomName);
-      console.log(login)
       socket.emit("join_room",  { login: login, room: roomName });
       setRoom(roomName);
       setIsInRoom(true);
-      console.log(connectedUsers);
     }
   }; 
   return (
