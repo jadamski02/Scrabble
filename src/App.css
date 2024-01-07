@@ -6,70 +6,81 @@ body {
 .App {
   text-align: center;
   color: white;
-  font-size: large;
 }
 
-.joinForm, 
+.createRoomForm, 
 .login,
 .signUp {
   color: white;
   text-align: center;
-  padding: 30px;
-  margin: 30px;
+  padding: 3vh;
+  margin: 3vh;
 }
 
-.joinForm {
+.createRoomForm {
   float: left;
 }
 
-.joinFormBox {
-  margin-bottom: 15px;
+.createRoomFormBox {
+  margin-bottom: 1.5vh;
   text-align: center;
-  width: 300px;
+  width: 30vh;
 }
 
 .availableRooms {
-  padding: 30px;
-  margin: 30px;
+  padding: 3vh;
+  margin: 3vh;
   align-items: center;
   float: left;
 }
 
 .loggedIn h1, h3 {
-  color: white;
   text-align: center;
+  color: white;
 }
 
 .room {
   color: white;
   background-color:#154C68;
-  border: solid 1px white;
-  padding: 10px;
+  border: solid 0.1vh white;
+  padding: 0.5vh;
 }
 
-.joinForm input,
+.roomBox {
+  margin: auto;
+  padding: 0.5vh;
+}
+
+.roomBox img {
+  display: inline-block;
+  width: 0.25vh;
+  margin: auto;
+}
+
+.createRoomForm input,
 .login input,
 .signUp input {
-  margin: 10px;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  height: 20px;
+  margin: 1vh;
+  padding: 1vh;
+  border: 0.1vh solid #ccc;
+  border-radius: 0.4vh;
+  height: 2vh;
   font-family: 'Syne';
+  font-size: 1.5vh;
 }
 
-.joinForm button,
+.createRoomForm button,
 .login button,
 .signUp button,
 .logOutBtn button {
-  margin: 10px;
-  padding: 10px;
+  margin: 1vh;
+  padding: 1vh;
   border: 1px solid #ccc;
-  border-radius: 4px;
-  height: 30px;
+  border-radius: 0.4vh;
+  height: 3vh;
   cursor: pointer;
   text-align: center;
-  line-height: 10px;
+  line-height: 1vh;
   font-family: 'Syne';
 }
 
@@ -78,74 +89,59 @@ body {
 }
 
 .availableRooms button {
-  margin: 10px;
-  padding: 10px;
-  border: 1px solid #ccc;
+  margin: 1vh;
+  padding: 1vh;
+  border: 0.1vh solid #ccc;
   border-radius: 4px;
-  height: 25px;
+  height: 0.25vh;
   cursor: pointer;
   text-align: center;
-  line-height: 5px;
+  line-height: 0.5vh;
   font-family: 'Syne';
+  height: 3vh;
 }
 
 .chat {
   float: right;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  font-family: 'Syne';
-  color: white;
+  height: 50vh;
+  font-family: 'Verdana';
   background-color: #154C68;
-  border-radius: 4px;
+  border-radius: 0.6vh;
+  width: 15vw;
 }
 
-.chat h1 {
+.chat h2 {
   color: white;
   text-align: center;
-  padding: 10px;
-  font-family: 'Syne';
+  padding: 0.2vh;
+  margin: 0;
+  font-family: 'Verdana';
+  font-size: 2.5vh;
 }
 
-.chat h3 {
-  color: white;
-  text-align: center;
-  padding: 10px;
-  font-family: 'Syne';
-}
-
-.userList ul {
-  list-style-type: circle;
-  font-family: 'Syne';
-  color: white;
-}
-
-.userList h4 {
-  padding-left: 10px;
+.userList {
+  padding: 0.5vh 2vh 0.5vh 2vh;
+  font-family: 'Verdana';
 }
 
 .chat input {
-  margin: 10px;
-  padding: 10px;
-  border-radius: 4px;
-}
-
-.chat button {
-  margin: 10px;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  width: 100px;
-  height: 30px;
-  cursor: pointer;    
+  margin: 1vh;
+  padding: 1vh;
+  border-radius: 0.6vh;
+  border: none;
+  width: 9vw;
+  height: 1vh;
+  font-size: 1.4vh;
 }
 
 .chatMessages {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 60px;
+  padding-bottom: 6vh;
   background-color: #a3d4ec;
-  padding: 10px;
+  padding: 1vh;
 
 }
 
@@ -154,117 +150,144 @@ body {
   position: sticky;
   bottom: 0;
   background-color: #154C68;
-  padding: 50px;
+  padding-right: 1vh;
 }
 
 .chatInputWithButton button {
-  font-family: 'Syne';
+  font-family: 'Verdana';
   color: black;
+  font-weight: 600;
   background-color: #a3d4ec;
+  border-radius: 0.6vh;
+  width: 3vw;
+  height: 3vh;
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: inline-block;
+  text-align: center;
+  font-size: 1.4vh;
 }
 
 .cell {
   background-color: #2B789D;
-  border: 1px solid white;
+  border: 0.1vh solid white;
   color: white;
-  width: 40px;
-  height: 40px;
+  width: 4.5vh;
+  height: 4.5vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 2px;
+  border-radius: 0.2vh;
+}
+
+.middleCell,
+.doubleWordScore,
+.tripleWordScore,
+.doubleLetterScore,
+.tripleLetterScore {
+  border: 0.1vh solid white;
+  color:black;
+  width: 4.5vh;
+  height: 4.5vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.2vh;
+  font-size: 2vh;
 }
 
 .middleCell {
   background-color: #DFDF54 ;
-  border: 1px solid white;
-  color:black;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 2px;
+}
 
-  font-size: 20px;
+.doubleWordScore {
+  background-color: deeppink;
+}
+
+.tripleWordScore {
+  background-color: orange;
+}
+
+.doubleLetterScore {
+  background-color: burlywood;
+}
+
+.tripleLetterScore {
+  background-color: green;
 }
 
 .scrabble-board {
   background-color: #154C68;
   display: grid;
-  grid-template-columns: repeat(15, 40px);
-  grid-template-rows: repeat(15, 40px);
-  gap: 2px;
-  padding: 40px;
-}
-
-.row {
-  display: flex;
-  gap: 2px;
+  grid-template-columns: repeat(15, 4.5vh);
+  grid-template-rows: repeat(15, 4.5vh);
+  gap: 0.2vh;
+  padding: 4.5vh;
 }
 
 .app-container {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  height: 100vh;
 }
 
 .game-area {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 50px;
+  height: 100%;
 }
 
 .chat-area {
-  margin-left: 200px;
+  margin-left: 10vw;
 }
 
 .lettersAndOptions {
-  padding-top: 20px;
-  padding-bottom: 20px;
+  padding-top: 2.2vh;
+  padding-bottom: 2.2vh;
   clear: both;
 }
 
 .tileRack {
-  border: solid 2px white;
+  border: solid 0.25vh white;
   text-align: center;
   color: white;
   display: flex;
   justify-content: center;
-  gap: 5px; 
-  padding: 10px;
+  gap: 0.6vh; 
+  padding: 1vh;
   background-color:#154C68;
-  min-width: 328px;
-  min-height: 46px;
+  min-width: 37vh;
+  min-height: 5vh;
 }
 
 .tile{
   color: black;
   font-weight: 700;
-  border: 1px solid black;
-  width: 40px;
-  height: 40px;
+  border: 0.1vh solid black;
+  width: 4.5vh;
+  height: 4.5vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 5px;
+  border-radius: 0.6vh;
   background-color: rgb(236, 223, 209);
   cursor: grab;
   position: relative;
+  font-size: 2vh;
 }
 
 .placeForTile {
   color: black;
   font-weight: 700;
   border: 1px solid black;
-  width: 40px;
-  height: 40px;
+  width: 4.5vh;
+  height: 4.5vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 5px;
+  border-radius: 0.6vh;
   background-color: #154C68;
   position: relative;
 }
@@ -274,40 +297,87 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  font-size: 2vh;
 }
 
 .value {
   position: absolute;
-  bottom: 5px;
-  right: 5px;
-  font-size: 12px;
+  bottom: 0.1vh;
+  right: 0.4vh;
+  font-size: 1.4vh;
 }
 
 .gameButton {
-  height: 40px;
+  height: 4.5vh;
   background-color: #a3d4ec;
+  min-width: 10vh;
+  font-size: 2vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: none;
+  border-radius: 0.6vh;
+  cursor: pointer;
+}
+
+.material-icons {
+  font-size: 3.5vh;
 }
 
 .buttons {
   display: flex;
-  gap: 10px;
+  gap: 1.1vh;
 }
 
 .loginMessage {
   color: red;
 }
 
-.chatQuitBtn {
+.quitBtn {
   text-align: center;
 }
 
-.chatQuitBtn button {
+.quitBtn button {
   color:crimson;
-  margin: 10px;
-  border-radius: 4px;
-  height: 25px;
+  margin: 1vh;
+  border-radius: 0.5vh;
+  height: 3vh;
   cursor: pointer;
   text-align: center;
-  line-height: 5px;
-  font-family: 'Syne';
+  line-height: 0.5vh;
+  font-family: 'Verdana';
+  width: 12vh;
+  font-size: 1.2vh;
+}
+
+.premia {
+  font-weight: 700;
+  text-align: center;
+  font-family: arial;
+  font-size: 2vh;
+}
+
+.infoPanel {
+  border-radius: 1vh;
+  font-family: 'Verdana';
+  height: 40vh;
+  width: 15vw;
+  font-size: 1.8vh;
+}
+
+.infoPanelBox {
+  border-radius: 1vh;
+  background-color: #a3d4ec;
+}
+
+.infoPanel h3 {
+  background-color: #154C68;
+  color: white;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+.infoPanelBox p {
+  font-weight: 700;
+  text-align: center;
 }

@@ -1,9 +1,10 @@
 import React from 'react';
 import GameArea from './GameArea';
 import AvailableRooms from './AvailableRooms';
-import JoinForm from './JoinForm';
+import CreateRoomForm from './CreateRoomForm';
 import Chat from './Chat';
 import { WrapperData } from '../Wrapper';
+import InfoPanel from './InfoPanel';
 
 
 function LoggedIn() {
@@ -17,6 +18,7 @@ function LoggedIn() {
         <>
             <GameArea />
             <div className='chat-area'>
+            <InfoPanel />
             <Chat />
             </div>
         </>
@@ -26,7 +28,7 @@ function LoggedIn() {
         <div className='loggedIn'>
         <h1>Jesteś zalogowany jako {login}</h1>
         <AvailableRooms />
-        <JoinForm />
+        <CreateRoomForm />
         <div className='logOutBtn'>
           <button onClick={handleLogOut}>Wyloguj się</button>
         </div>

@@ -6,24 +6,13 @@ function PlaceForTile(props) {
     const value = props.placeForTile.tile.value;
     const placeId = props.placeForTile.id;
 
-    const handleDragStartFromTileRack = (e) => {
-        e.dataTransfer.setData("letter", letter);
-        e.dataTransfer.setData("value", value);
-        e.dataTransfer.setData("placeId", placeId);
-        e.dataTransfer.setData("tileEvent", e);
-     };
+    const handleDragEndFromTileRack = (e) => {
+      ///
+    };
 
-     const handleDragEndFromTileRack = (e) => {
-        ///
-      };
-  
-      const handleDragOverOnTileRack = (e) => {
-       ///
-      };
-  
-      const handleDropOnTileRack = (e) => {
-        ///
-      };
+    const handleDragOverOnTileRack = (e) => {
+      ///
+    };
 
     let tileClass = "placeForTile";
     let isDraggable = "false";
@@ -35,9 +24,9 @@ function PlaceForTile(props) {
   return (
     <div className={tileClass}
          draggable={isDraggable}
-         onDrop={handleDropOnTileRack}
-         onDragOver={handleDragOverOnTileRack}
-         onDragStart={handleDragStartFromTileRack}
+         onDrop={e => props.handleDropOnTileRack(e, placeId)}
+         onDragOver={props.allowDropOnTileRack}
+         onDragStart={e => props.handleDragStartFromTileRack(e, props.placeForTile)}
          onDragEnd={handleDragEndFromTileRack}
          key={placeId}
           >

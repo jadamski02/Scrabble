@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 import Cookies from 'universal-cookie';
@@ -22,6 +22,7 @@ export const Wrapper = () => {
         {id: 5, tile: { id: "", letter: "", value: ""}},
         {id: 6, tile: { id: "", letter: "", value: ""}}
     ]);
+    const [board, setBoard] = useState([]);
     const cookies = new Cookies();
     const [isInRoom, setIsInRoom] = useState(false);
     const [isAuth, setIsAuth] = useState(false);
@@ -33,9 +34,81 @@ export const Wrapper = () => {
     const [numberOfTilesLeft, setNumberOfTilesLeft] = useState(100);
     const [connectedUsers, setConnectedUsers] = useState([]);
     const [availableRooms, setAvailableRooms] = useState([]);
-    const [ loginMessage, setLoginMessage ] = useState(null);
+    const [loginMessage, setLoginMessage] = useState(null);
+    const [isMyTurn, setIsMyTurn] = useState(false);
+    const [whoseTurn, setWhoseTurn] = useState(null);
+    const [turnLetters, setTurnLetters] = useState([]);
+    const [turnPoints, setTurnPoints] = useState(0);
+    const [gamePoints, setGamePoints] = useState(0);
+    const Ref = useRef(null);
+    const [timer, setTimer] = useState("00:05:00");
+    const [isGameStared, setIsGameStarted] = useState(false);
+    const [hostUser, setHostUser] = useState(0);
+ 
+    const getTimeRemaining = (e) => {
+        const total =
+            Date.parse(e) - Date.parse(new Date());
+        const seconds = Math.floor((total / 1000) % 60);
+        const minutes = Math.floor(
+            (total / 1000 / 60) % 60
+        );
+        const hours = Math.floor(
+            (total / 1000 / 60 / 60) % 24
+        );
+        return {
+            total,
+            hours,
+            minutes,
+            seconds,
+        };
+    };
+ 
+    const startTimer = (e) => {
+        let { total, hours, minutes, seconds } =
+            getTimeRemaining(e);
+        if (total >= 0) {
+
+            setTimer(
+                (hours > 9 ? hours : "0" + hours) +
+                ":" +
+                (minutes > 9
+                    ? minutes
+                    : "0" + minutes) +
+                ":" +
+                (seconds > 9 ? seconds : "0" + seconds)
+            );
+        }
+    };
+ 
+    const clearTimer = (e) => {
+
+        setTimer("00:05:00");
+ 
+        if (Ref.current) clearInterval(Ref.current);
+        const id = setInterval(() => {
+            startTimer(e);
+        }, 1000);
+        Ref.current = id;
+    };
+ 
+    const getDeadTime = () => {
+        let deadline = new Date();
+        deadline.setSeconds(deadline.getSeconds() + 300);
+        return deadline;
+    };
+ 
+    const resetTimer = () => {
+        clearTimer(getDeadTime());
+    }
 
     useEffect(() => {
+     if(isGameStared) {
+        clearTimer(getDeadTime());
+     }
+    }, [isGameStared])
+  
+    useEffect(() => {
+
         checkLoginStatus();
         getAvailableRooms();
 
@@ -49,15 +122,7 @@ export const Wrapper = () => {
 
         socket.on("updated_rooms_list", (updatedRoomsList) => {
             const roomsWithUsers = updatedRoomsList;
-    
-            const roomsList = Object.keys(roomsWithUsers);
-            const formattedRooms = roomsList.map(room => {
-                return {
-                    roomName: room,
-                    userCount: roomsWithUsers[room].length 
-                };
-            });
-    
+            const formattedRooms = formatRooms(roomsWithUsers);
             setAvailableRooms(formattedRooms);
 
         });
@@ -68,10 +133,38 @@ export const Wrapper = () => {
             );
         });
 
+        socket.on("set_user_turn", (newUserTurn) => {
+            if (newUserTurn && newUserTurn.socketId && newUserTurn.socketId === socket.id) {
+                setIsMyTurn(true);
+            } else {
+                setIsMyTurn(false);
+            }
+            if (newUserTurn) {
+                setWhoseTurn(newUserTurn.login);
+            }
+        });
+
+
+        socket.on("set_host_user", (data) => {
+            setHostUser(data);
+        });
+
         return () => {
             socket.off("updated_users_list");
         };
     }, []);
+
+    const formatRooms = (roomsWithUsers) => {
+        const roomsList = Object.keys(roomsWithUsers);
+        const formattedRooms = roomsList.map(room => {
+            return {
+                roomName: room,
+                userCount: roomsWithUsers[room].users.length,
+                isPrivate: roomsWithUsers[room].isPrivate
+            };
+        });
+        return formattedRooms;
+        };
 
     const doLogin = async (login, password) => {
         setLoginMessage('');
@@ -203,15 +296,7 @@ export const Wrapper = () => {
         try {
             const response = await axios.get(`http://localhost:3001/rooms`);
             const roomsWithUsers = response.data;
-    
-            const roomsList = Object.keys(roomsWithUsers);
-            const formattedRooms = roomsList.map(room => {
-                return {
-                    roomName: room,
-                    userCount: roomsWithUsers[room].length 
-                };
-            });
-    
+            const formattedRooms = formatRooms(roomsWithUsers);
             setAvailableRooms(formattedRooms);
         } catch (error) {
             console.error(error);
@@ -238,21 +323,44 @@ export const Wrapper = () => {
         setNumberOfLettersToGet(numberOfLettersToGet + 1);
       };
 
+    const removeTileFromBoard = (event, x, y) => {
+
+    if (event?.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move';
+    event.preventDefault();
+    }
+
+    const newBoard = board.map((cell) => {
+        if(cell.row == x && cell.col == y) {
+            return {...cell, letter: '', value: '', tileId: ''}
+        } else return cell
+    });
+
+    setBoard(newBoard);
+    setNumberOfLettersToGet(numberOfLettersToGet - 1);
+    socket.emit("update_board", { room: room, board: newBoard });
+    }
+
       const shuffleTiles = () => {
         const newArr = [...tilesOnRack];
         setTilesOnRack(newArr.sort(() => Math.random() - 0.5));
       };
 
       const handleLogOut = () => {
+        axios.delete(`http://localhost:3001/logout`, {refreshToken: token})
         setIsAuth(false);
         cookies.remove("token");
         cookies.remove("login");
         cookies.remove("email");
       }
 
+      const confirmMove = () => {
+        socket.emit("moveConfirmed", { room: room });
+      }
+
     return (
 
-        <WrapperContext.Provider value={{ loginMessage, setLoginMessage, handleLogOut, doLogin, doSignUp, connectedUsers, availableRooms, room, socket, shuffleTiles, getTiles, tilesOnRack, numberOfTilesLeft, setTilesOnRack, removeTileFromRack, setRoom, isInRoom, setIsInRoom, login, setLogin, isAuth }}>
+        <WrapperContext.Provider value={{ hostUser, setHostUser, isGameStared, setIsGameStarted, resetTimer, timer, gamePoints, setGamePoints, turnPoints, setTurnPoints, turnLetters, setTurnLetters, isMyTurn, whoseTurn, confirmMove, board, setBoard, loginMessage, setLoginMessage, handleLogOut, doLogin, doSignUp, connectedUsers, availableRooms, room, socket, shuffleTiles, getTiles, tilesOnRack, numberOfTilesLeft, setTilesOnRack, removeTileFromRack,removeTileFromBoard, setRoom, isInRoom, setIsInRoom, login, setLogin, isAuth }}>
             <>
             <div className='app-container'>
       

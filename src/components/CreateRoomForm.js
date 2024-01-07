@@ -1,12 +1,14 @@
 import '../App.css';
 import { WrapperData } from '../Wrapper';
 import React, { useState } from 'react';
+import axios from 'axios';
 
-function JoinForm() {
+function CreateRoomForm() {
 
   const [roomName, setRoomName] = useState("");
   const [roomPassword, setRoomPassword] = useState("");
   const [isRoomPrivate, setIsRoomPrivate] = useState(false);
+  const [createRoomErrorMessage, setCreateRoomErrorMessage] = useState("");
 
   const { room, setRoom, socket, setIsInRoom, login, connectedUsers } = WrapperData();
 
@@ -15,29 +17,49 @@ function JoinForm() {
       setRoomPassword("");
   }
 
-  const joinRoom = () => {
-    if(room === "") {
-      socket.emit("join_room",  { login: login, room: roomName });
-      setRoom(roomName);
-      setIsInRoom(true);
+  const createRoom = () => {
+    if(roomName !== "") {
+      axios.post("http://localhost:3001/createRoom", {
+      login: login,
+      socketId: socket.id,
+      roomName: roomName,
+      roomPassword: roomPassword,
+      })
+      .then((res) => {
+        if (res.status === 200) {
+          setRoom(roomName);
+          setIsInRoom(true);
+        }
+      })
+      .catch((error) => {
+        switch (error.response.status) {
+          case 409: {
+              setCreateRoomErrorMessage("Pokój o takiej nazwie już istnieje");
+          } break;
+          default: {
+              console.error('Error:', error);
+          }
+        }
+      });
     }
   }; 
   return (
-    <div className="joinForm">
+    <div className="createRoomForm">
 
       <h3>Utwórz nowy pokój</h3>
 
-      <div className='joinFormBox'>
+      <div className='createRoomFormBox'>
       <input 
       value={roomName} 
       placeholder='Nazwa pokoju...' 
       onChange={(event) => {
         setRoomName(event.target.value);
+        setCreateRoomErrorMessage("");
       }}
       />
       </div>
 
-      <div className='joinFormBox'>
+      <div className='createRoomFormBox'>
         <label htmlFor="privateCheck">Pokój prywatny?</label>
         <input 
         id="privateCheck" 
@@ -46,7 +68,7 @@ function JoinForm() {
         onChange={handleCheckboxClick} /> 
       </div>
 
-      <div className='joinFormBox'>
+      <div className='createRoomFormBox'>
         <input 
         type="password"
         value={roomPassword} 
@@ -58,9 +80,11 @@ function JoinForm() {
         />
       </div>
 
-      <div className='joinFormBox'>
-        <button onClick={joinRoom}>Utwórz</button>
+      <div className='createRoomFormBox'>
+        <button onClick={createRoom}>Utwórz</button>
       </div>
+
+      {createRoomErrorMessage}
 
       <br/>
     
@@ -68,4 +92,4 @@ function JoinForm() {
   );
 }
 
-export default JoinForm;
+export default CreateRoomForm;
