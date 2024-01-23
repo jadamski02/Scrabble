@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 import Cookies from 'universal-cookie';
+import { doubleLetterScores, doubleWordScores, tripleLetterScores, tripleWordScores } from './components/ExtraPoints';
 
 import LoggedIn from './components/LoggedIn';
 import Login from './components/Login';
@@ -14,16 +15,16 @@ const socket = io.connect("http://localhost:3001");
 export const Wrapper = () => {
 
     const [tilesOnRack, setTilesOnRack] = useState([
-        {id: 0, tile: { id: "", letter: "", value: ""}},
-        {id: 1, tile: { id: "", letter: "", value: ""}},
-        {id: 2, tile: { id: "", letter: "", value: ""}},
-        {id: 3, tile: { id: "", letter: "", value: ""}},
-        {id: 4, tile: { id: "", letter: "", value: ""}},
-        {id: 5, tile: { id: "", letter: "", value: ""}},
-        {id: 6, tile: { id: "", letter: "", value: ""}}
+        { id: 0, tile: { id: "", letter: "", value: "" } },
+        { id: 1, tile: { id: "", letter: "", value: "" } },
+        { id: 2, tile: { id: "", letter: "", value: "" } },
+        { id: 3, tile: { id: "", letter: "", value: "" } },
+        { id: 4, tile: { id: "", letter: "", value: "" } },
+        { id: 5, tile: { id: "", letter: "", value: "" } },
+        { id: 6, tile: { id: "", letter: "", value: "" } }
     ]);
     const [board, setBoard] = useState([]);
-    const cookies = new Cookies();
+    const cookies = useMemo(() => new Cookies(), []);
     const [isInRoom, setIsInRoom] = useState(false);
     const [isAuth, setIsAuth] = useState(false);
     const [login, setLogin] = useState(cookies.get("login"));
@@ -37,14 +38,19 @@ export const Wrapper = () => {
     const [loginMessage, setLoginMessage] = useState(null);
     const [isMyTurn, setIsMyTurn] = useState(false);
     const [whoseTurn, setWhoseTurn] = useState(null);
-    const [turnLetters, setTurnLetters] = useState([]);
-    const [turnPoints, setTurnPoints] = useState(0);
-    const [gamePoints, setGamePoints] = useState(0);
+    const [turnCount, setTurnCount] = useState(0);
+    const [turnLetters, setTurnLetters] = useState([]); /// kafelki wylozone w danej turze
+    const [turnPoints, setTurnPoints] = useState(0);    /// suma punktow w jednej turze (nowe kafelki oraz kafelki wylozone wczesniej)
+    const [gamePoints, setGamePoints] = useState(0);    /// suma wszystkich zdobytych punktow
     const Ref = useRef(null);
     const [timer, setTimer] = useState("00:05:00");
     const [isGameStared, setIsGameStarted] = useState(false);
     const [hostUser, setHostUser] = useState(0);
- 
+    const [words, setWords] = useState([]); /// slowa utworzone w danej turze
+    const [movesList, setMovesList] = useState([]);
+    const [movePossible, setMovePossible] = useState(false);
+    const [wordLetters, setWordsLetters] = useState([]);
+
     const getTimeRemaining = (e) => {
         const total =
             Date.parse(e) - Date.parse(new Date());
@@ -62,7 +68,7 @@ export const Wrapper = () => {
             seconds,
         };
     };
- 
+
     const startTimer = (e) => {
         let { total, hours, minutes, seconds } =
             getTimeRemaining(e);
@@ -79,80 +85,143 @@ export const Wrapper = () => {
             );
         }
     };
- 
+
     const clearTimer = (e) => {
 
         setTimer("00:05:00");
- 
+
         if (Ref.current) clearInterval(Ref.current);
         const id = setInterval(() => {
             startTimer(e);
         }, 1000);
         Ref.current = id;
     };
- 
+
     const getDeadTime = () => {
         let deadline = new Date();
         deadline.setSeconds(deadline.getSeconds() + 300);
         return deadline;
     };
- 
+
     const resetTimer = () => {
         clearTimer(getDeadTime());
-    }
+    };
+
+    const memoizedClearTimer = useCallback(clearTimer, [clearTimer]);
 
     useEffect(() => {
-     if(isGameStared) {
-        clearTimer(getDeadTime());
-     }
-    }, [isGameStared])
-  
+        if (isGameStared) {
+            memoizedClearTimer(getDeadTime());
+        }
+    }, [isGameStared, memoizedClearTimer])
+
     useEffect(() => {
 
-        checkLoginStatus();
-        getAvailableRooms();
+        const checkLoginStatus = async () => {
+            const token = cookies.get("token");
+            if (token === undefined) return;
 
-        socket.on("set_number_of_tiles_left", (data) => {
+            axios.post("http://localhost:3001/checkLoginStatus", {
+                token: token
+            })
+                .then((res) => {
+                    if (res.status === 200) {
+                        const { token } = res.data;
+                        cookies.set("token", token);
+                        setToken(token);
+                        setIsAuth(true);
+                    }
+                })
+                .catch((error) => {
+                    if (error.response && error.response.status === 403) {
+                        cookies.remove("login");
+                        cookies.remove("email");
+                        cookies.remove("token");
+                    } else if (error.response && error.response.status === 401) {
+                        console.error('Niepoprawne dane - 401');
+                    } else {
+                        console.error('Error:', error);
+                    }
+                });
+        };
+
+        const getAvailableRooms = async () => {
+            try {
+                const response = await axios.get(`http://localhost:3001/rooms`);
+                const roomsWithUsers = response.data;
+                const formattedRooms = formatRooms(roomsWithUsers);
+                setAvailableRooms(formattedRooms);
+            } catch (error) {
+                console.error(error);
+            }
+        };
+
+        const fetchData = async () => {
+            await checkLoginStatus();
+            await getAvailableRooms();
+        };
+
+        fetchData();
+
+        const numberOfTilesLeftListener = (data) => {
             setNumberOfTilesLeft(data.numberOfTilesLeft);
-        });
+        };
 
-        socket.on("updated_users_list", (users) => {
+        const updatedUsersListListener = (users) => {
             setConnectedUsers(users);
-        });
+        };
 
-        socket.on("updated_rooms_list", (updatedRoomsList) => {
+        const updatedRoomsListListener = (updatedRoomsList) => {
             const roomsWithUsers = updatedRoomsList;
             const formattedRooms = formatRooms(roomsWithUsers);
             setAvailableRooms(formattedRooms);
+        };
 
-        });
-
-        socket.on("user_disconnected", (data) => {
+        const userDisconnectedListener = (data) => {
             setConnectedUsers((prevUsers) =>
                 prevUsers.filter((username) => username !== data.username)
             );
-        });
+        };
 
-        socket.on("set_user_turn", (newUserTurn) => {
-            if (newUserTurn && newUserTurn.socketId && newUserTurn.socketId === socket.id) {
+        const organizeWordsByTurnCount = (wordsArray) => {
+            const result = [];
+            wordsArray.forEach((word) => {
+              if (!result[word.turnCount]) {
+                result[word.turnCount] = { turn_id: word.turnCount, words: [] };
+              }
+              result[word.turnCount].words.push({ word: word.word, points: word.points });
+            });
+            return result.filter(Boolean);
+          };
+
+        const updateGameStatsListener = (data) => {
+            if (data.newUserTurn && data.newUserTurn.socketId && data.newUserTurn.socketId === socket.id) {
                 setIsMyTurn(true);
             } else {
                 setIsMyTurn(false);
             }
-            if (newUserTurn) {
-                setWhoseTurn(newUserTurn.login);
+            if (data.newUserTurn) {
+                setWhoseTurn(data.newUserTurn.login);
             }
-        });
+            setTurnCount(data.turnCount);
+            setMovesList(organizeWordsByTurnCount(data.words));
+        };
 
-
-        socket.on("set_host_user", (data) => {
+        const setHostUserListener = (data) => {
             setHostUser(data);
-        });
+        };
+
+        socket.on("set_number_of_tiles_left", numberOfTilesLeftListener);
+        socket.on("updated_users_list", updatedUsersListListener);
+        socket.on("updated_rooms_list", updatedRoomsListListener);
+        socket.on("user_disconnected", userDisconnectedListener);
+        socket.on("update_game_stats", updateGameStatsListener);
+        socket.on("set_host_user", setHostUserListener);
 
         return () => {
-            socket.off("updated_users_list");
+            socket.off("updated_users_list", updatedUsersListListener);
         };
-    }, []);
+    }, [cookies]);
 
     const formatRooms = (roomsWithUsers) => {
         const roomsList = Object.keys(roomsWithUsers);
@@ -164,84 +233,49 @@ export const Wrapper = () => {
             };
         });
         return formattedRooms;
-        };
+    };
 
     const doLogin = async (login, password) => {
         setLoginMessage('');
-      if(login.length === 0) setLoginMessage("Proszę podać poprawny login");
-      if(login.length === 0) setLoginMessage("Proszę podać poprawne hasło");
-      axios.post("http://localhost:3001/login", {
-        login,
-        password,
-      })
-      .then((res) => {
-        if(res.status === 200) {
-          const { login, email, token, role_id } = res.data;
-          cookies.set("login", login);
-          cookies.set("email", email);
-          cookies.set("token", token);
-          setLogin(login);
-          setEmail(email);
-          setToken(token);
-          setIsAuth(true);
-        }
-      })
-      .catch((error) => {
-        switch (error.response.status) {
-            case 401: {
-                console.error('Niepoprawne dane - 401');
-                setLoginMessage("Niepoprawne dane");
-            } break;
-            case 403: {
-                console.error('Brak dostępu - 403');
-                setLoginMessage("Użytkownik zablokowany");
-            } break;
-            case 404: {
-                console.error('Użytkownik nie został znaleziony - 404');
-                setLoginMessage("Użytkownik nie został znaleziony");
-            } break;
-            default: {
-                console.error('Error:', error);
-            }
-        }
-      });
-        
+        if (login.length === 0) setLoginMessage("Proszę podać poprawny login");
+        if (login.length === 0) setLoginMessage("Proszę podać poprawne hasło");
+        axios.post("http://localhost:3001/login", {
+            login,
+            password,
+        })
+            .then((res) => {
+                if (res.status === 200) {
+                    const { login, email, token } = res.data;
+                    cookies.set("login", login);
+                    cookies.set("email", email);
+                    cookies.set("token", token);
+                    setLogin(login);
+                    setEmail(email);
+                    setToken(token);
+                    setIsAuth(true);
+                }
+            })
+            .catch((error) => {
+                switch (error.response.status) {
+                    case 401:
+                        console.error('Niepoprawne dane - 401');
+                        setLoginMessage("Niepoprawne dane");
+                        break;
+                    case 403:
+                        console.error('Brak dostępu - 403');
+                        setLoginMessage("Użytkownik zablokowany");
+                        break;
+                    case 404:
+                        console.error('Użytkownik nie został znaleziony - 404');
+                        setLoginMessage("Użytkownik nie został znaleziony");
+                        break;
+                    default:
+                        console.error('Error:', error);
+                }
+
+            });
+
     }
-
-    const checkLoginStatus = async () => {
-        const token = cookies.get("token")
-        if(token === undefined) return;
-
-        const requestOptions = {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: cookies.get("token") })
-      };
-    
-        axios.post("http://localhost:3001/checkLoginStatus", {
-        token: token
-        })
-        .then((res) => {
-            if(res.status === 200) {
-            const { login, email, token, role_id, } = res.data;
-            cookies.set("token", token);
-            setToken(token);
-            setIsAuth(true);
-            }
-        })
-        .catch((error) => {
-            if (error.response && error.response.status === 403) {
-                cookies.remove("login");
-                cookies.remove("email");
-                cookies.remove("token");
-            } else if(error.response && error.response.status === 401){
-                console.error('Niepoprawne dane - 401');
-            } else {
-                console.error('Error:', error);
-            }
-        });
-    
-      }
 
     const doSignUp = async (login, email, password) => {
         try {
@@ -250,9 +284,9 @@ export const Wrapper = () => {
                 email,
                 password
             });
-    
+
             if (response.status === 200) {
-                const { login, email, token, role_id } = response.data;
+                const { login, email, token } = response.data;
                 cookies.set("login", login);
                 cookies.set("email", email);
                 cookies.set("token", token);
@@ -267,7 +301,7 @@ export const Wrapper = () => {
             console.log("Error:", error);
         }
     };
-    
+
 
     const getTiles = async () => {
         if (numberOfLettersToGet > 0) {
@@ -276,13 +310,13 @@ export const Wrapper = () => {
                 const newTiles = response.data;
 
                 const updatedTiles = tilesOnRack.map((singlePlace) => {
-                    if(singlePlace.tile.value === "") return {
+                    if (singlePlace.tile.value === "") return {
                         id: singlePlace.id,
                         tile: newTiles.shift()
                     }
                     return singlePlace;
                 });
-    
+
                 setTilesOnRack(updatedTiles);
                 setNumberOfLettersToGet(0);
                 socket.emit("set_number_of_tiles_left", { room: room });
@@ -292,89 +326,413 @@ export const Wrapper = () => {
         }
     };
 
-    const getAvailableRooms = async () => {
-        try {
-            const response = await axios.get(`http://localhost:3001/rooms`);
-            const roomsWithUsers = response.data;
-            const formattedRooms = formatRooms(roomsWithUsers);
-            setAvailableRooms(formattedRooms);
-        } catch (error) {
-            console.error(error);
-        }
-    };
-    
-
     const removeTileFromRack = (event, placeId) => {
 
         if (event?.dataTransfer) {
-        event.dataTransfer.dropEffect = 'move';
-        event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            event.preventDefault();
         }
-  
+
         const newRack = tilesOnRack.map((placeForTile) => {
-          if(placeForTile.id == placeId) {
-            return {...placeForTile, tile: { id: "", letter: "", value: ""}}
-          } else {
-            return placeForTile;
-          }
-  
+            if (placeForTile.id === placeId) {
+                return { ...placeForTile, tile: { id: "", letter: "", value: "" } }
+            } else {
+                return placeForTile;
+            }
+
         });
         setTilesOnRack(newRack);
         setNumberOfLettersToGet(numberOfLettersToGet + 1);
-      };
+    };
 
     const removeTileFromBoard = (event, x, y) => {
 
-    if (event?.dataTransfer) {
-    event.dataTransfer.dropEffect = 'move';
-    event.preventDefault();
+        if (event?.dataTransfer) {
+            event.dataTransfer.dropEffect = 'move';
+            event.preventDefault();
+        }
+
+        const newBoard = board.map((cell) => {
+            if (cell.row === x && cell.col === y) {
+                return { ...cell, letter: '', value: '', tileId: '' }
+            } else return cell
+        });
+
+        setBoard(newBoard);
+        setNumberOfLettersToGet(numberOfLettersToGet - 1);
+        socket.emit("update_board", { room: room, board: newBoard });
     }
 
-    const newBoard = board.map((cell) => {
-        if(cell.row == x && cell.col == y) {
-            return {...cell, letter: '', value: '', tileId: ''}
-        } else return cell
-    });
-
-    setBoard(newBoard);
-    setNumberOfLettersToGet(numberOfLettersToGet - 1);
-    socket.emit("update_board", { room: room, board: newBoard });
-    }
-
-      const shuffleTiles = () => {
+    const shuffleTiles = () => {
         const newArr = [...tilesOnRack];
         setTilesOnRack(newArr.sort(() => Math.random() - 0.5));
-      };
+    };
 
-      const handleLogOut = () => {
-        axios.delete(`http://localhost:3001/logout`, {refreshToken: token})
+    const handleLogOut = () => {
+        axios.delete(`http://localhost:3001/logout`, { refreshToken: token })
         setIsAuth(false);
         cookies.remove("token");
         cookies.remove("login");
         cookies.remove("email");
-      }
+    };
 
-      const confirmMove = () => {
-        socket.emit("moveConfirmed", { room: room });
-      }
+    const validateMove = () => {
+        if(wordFromLetters()) {
+            setMovePossible(true);
+        } else {
+            setMovePossible(false);
+        } 
+    };
+
+
+    const wordFromLetters = () => {
+        /// pierwsza tura
+        if(turnCount === 0) {
+            if(turnLetters.length < 2) {
+                console.log("Za mało liter");
+                return false;
+            } else if(!turnLetters.find(el => el.rowIndex === 7 && el.colIndex === 7)) {
+                console.log("Zły punkt startowy");
+                return false;
+            }
+        }
+        let isHorizontal = true;
+        let isVertical = true;
+        let horizontalAxis = turnLetters[0].rowIndex;
+        let verticalAxis = turnLetters[0].colIndex;
+        let word = "";
+        let isValid = false;
+        let upperTile = null;
+        let lowerTile = null;
+        let leftTile = null;
+        let rightTile = null;
+        let wordsCreated = [];
+        let newWordsLettersArr = turnLetters.map((tl) => {
+            return { rowIndex: tl.rowIndex, colIndex: tl.colIndex, letter: tl.letter, value: tl.computedValue, tileId: tl.tileId }});
+        // tworzymy zmienna tablicowa do zliczenia punktow calego slowa - poczatkowo same literki z tury biezacej);
+        
+
+        // sprawdzamy czy zostal wylozony tylko jeden kafelek
+        if(turnLetters.length === 1) {
+            console.log("Pojedynczy kafelek");
+            isValid = true;
+        } else {
+            // sprawdzamy czy ulozenie nowych kafelkow jest poziome lub pionowe
+            turnLetters.forEach(tl => {
+                if (tl.rowIndex !== horizontalAxis) isHorizontal = false;
+                if (tl.colIndex !== verticalAxis) isVertical = false;
+            });
+        }
+
+        if(!isHorizontal && ! isVertical) {
+            console.log("Niepoprawne ulozenie kafelkow");
+            return false;
+        } 
+
+        const bordersWordLetters = (tile) => {
+            let upperNeighbor = newWordsLettersArr.find(tl => tl.rowIndex === tile.row - 1 && tl.colIndex === tile.col && tl.tileId !== '');
+            let lowerNeighbor = newWordsLettersArr.find(tl => tl.rowIndex === tile.row + 1 && tl.colIndex === tile.col && tl.tileId !== '');
+            let leftNeighbor = newWordsLettersArr.find(tl => tl.rowIndex === tile.row && tl.colIndex === tile.col - 1 && tl.tileId !== '');
+            let rightNeighbor = newWordsLettersArr.find(tl => tl.rowIndex === tile.row && tl.colIndex === tile.col + 1 && tl.tileId !== '');
+            console.log("UPPER TILE: ", upperNeighbor);
+            console.log("LOWER TILE: ", lowerNeighbor);
+            console.log("LEFT TILE: ", leftNeighbor);
+            console.log("RIGHT TILE: ", rightNeighbor);
+
+            if(isHorizontal) {
+                return (leftNeighbor || rightNeighbor) && !newWordsLettersArr.find(wl => wl.tileId === tile.tileId);
+            } else if(isVertical) {
+                return (upperNeighbor || lowerNeighbor) && !newWordsLettersArr.find(wl => wl.tileId === tile.tileId);
+            }
+
+        }
+
+        if(isHorizontal && !isVertical) {
+            for(let i = 0; i <= 14; i++) {
+                let tile = board.find(el => el.row === horizontalAxis && el.col === i && el.tileId !== '' && !turnLetters.find(tl => tl.tileId === el.tileId) && bordersWordLetters(el));
+                if(tile) {
+                    console.log("PUSH EXISTING TILE: ", tile);
+                    newWordsLettersArr.push({ rowIndex: tile.row, colIndex: tile.col, letter: tile.letter, value: tile.value, tileId: tile.tileId });
+                }
+            }
+            for(let i = 14; i > 0; i--) {
+                let tile = board.find(el => el.row === horizontalAxis && el.col === i && el.tileId !== '' && !turnLetters.find(tl => tl.tileId === el.tileId) && bordersWordLetters(el));
+                if(tile) {
+                    console.log("PUSH EXISTING TILE: ", tile);
+                    newWordsLettersArr.push({ rowIndex: tile.row, colIndex: tile.col, letter: tile.letter, value: tile.value, tileId: tile.tileId });
+                }
+            }
+        } else if(isVertical && !isHorizontal) {
+            for(let i = 0; i <= 14; i++) {
+                let tile = board.find(el => el.row === i && el.col === verticalAxis && el.tileId !== '' && !turnLetters.find(tl => tl.tileId === el.tileId) && bordersWordLetters(el));
+                if(tile) {
+                    console.log("PUSH EXISTING TILE: ", tile);
+                    newWordsLettersArr.push({ rowIndex: tile.row, colIndex: tile.col, letter: tile.letter, tileId: tile.tileId, value: tile.value });
+                }
+            }
+            for(let i = 14; i > 0; i--) {
+                let tile = board.find(el => el.row === i && el.col === verticalAxis && el.tileId !== '' && !turnLetters.find(tl => tl.tileId === el.tileId) && bordersWordLetters(el));
+                if(tile) {
+                    console.log("PUSH EXISTING TILE: ", tile);
+                    newWordsLettersArr.push({ rowIndex: tile.row, colIndex: tile.col, letter: tile.letter, tileId: tile.tileId, value: tile.value });
+                }
+            }
+        }
+        
+        // szukamy plytek ktore byly wylozone wczesniej i maja zostac wliczone do punktow w tej rundzie
+        // najpierw sprawdzmy czy zostala dolozona jedna plytka
+        if(turnLetters.length === 1) {
+            // sprawdzamy czy plytka w ogole ma sasiadow
+            let horizontalLetters = new Set();
+            let horizontalWord = "";
+            let verticalLetters = new Set();
+            let verticalWord = "";
+            const originCoords = { row: horizontalAxis, col: verticalAxis };
+            let coords = { row: horizontalAxis, col: verticalAxis };
+            upperTile = board.find(el => el.row === coords.row - 1 && el.col === coords.col && el.tileId !== '');
+            lowerTile = board.find(el => el.row === coords.row + 1 && el.col === coords.col && el.tileId !== '');
+            leftTile = board.find(el => el.row === coords.row && el.col === coords.col - 1 && el.tileId !== '');
+            rightTile = board.find(el => el.row === coords.row && el.col === coords.col + 1 && el.tileId !== '');
+            if(!upperTile && !lowerTile && !leftTile && !rightTile) {
+                console.log("Płytka nie styka sie z innymi");
+                isValid = false;
+            } else {
+                 // sprawdzamy u gory
+                 if(upperTile) {
+                    while(upperTile && upperTile.tileId !== '' || coords.row <= 0) {
+                        verticalLetters.add(upperTile);
+                        if(!newWordsLettersArr.find(wl => wl.tileId === upperTile.tileId)) newWordsLettersArr.push({ rowIndex: upperTile.row, colIndex: upperTile.col, letter: upperTile.letter, tileId: upperTile.tileId, value: upperTile.value });
+                        upperTile = board.find(el => el.row === coords.row - 1 && el.col === coords.col && el.tileId !== '');
+                        coords = { row: coords.row - 1, col: coords.col }
+                    }
+                    coords = originCoords;
+                }
+                // sprawdzamy z dolu
+                if(lowerTile) {
+                    while(lowerTile && lowerTile.tileId !== '' || coords.row >= 14) {
+                        verticalLetters.add(lowerTile);
+                        if(!newWordsLettersArr.find(wl => wl.tileId === lowerTile.tileId)) newWordsLettersArr.push({ rowIndex: lowerTile.row, colIndex: lowerTile.col, letter: lowerTile.letter, tileId: lowerTile.tileId, value: lowerTile.value });
+                        lowerTile = board.find(el => el.row === coords.row + 1 && el.col === coords.col && el.tileId !== '');
+                        coords = { row: coords.row + 1, col: coords.col }
+                    }
+                    coords = originCoords;
+                }
+                // sprawdzmy z lewej
+                if(leftTile) {
+                    while(leftTile && leftTile.tileId !== '' || coords.col <= 0) {
+                        horizontalLetters.add(leftTile);
+                        if(!newWordsLettersArr.find(wl => wl.tileId === leftTile.tileId)) newWordsLettersArr.push({ rowIndex: leftTile.row, colIndex: leftTile.col, letter: leftTile.letter, tileId: leftTile.tileId, value: leftTile.value });
+                        leftTile = board.find(el => el.row === coords.row && el.col === coords.col - 1 && el.tileId !== '');
+                        coords = { row: coords.row, col: coords.col - 1 }
+                    }
+                    coords = originCoords;
+                }
+                if(rightTile) {
+                    while(rightTile && rightTile.tileId !== '' || coords.col >= 14) {
+                        horizontalLetters.add(rightTile);
+                        if(!newWordsLettersArr.find(wl => wl.tileId === rightTile.tileId)) newWordsLettersArr.push({ rowIndex: rightTile.row, colIndex: rightTile.col, letter: rightTile.letter, tileId: rightTile.tileId, value: rightTile.value });
+                        rightTile = board.find(el => el.row === coords.row && el.col === coords.col + 1 && el.tileId !== '');
+                        coords = { row: coords.row, col: coords.col + 1 }
+                    }
+                    coords = originCoords;
+                }
+                
+                if(verticalLetters.size > 0) {
+                    let tile = turnLetters[0];
+                    let verticalWordPoints = 0;
+                    verticalLetters.add({row: tile.rowIndex, col: tile.colIndex, letter: tile.letter, value: tile.computedValue, tileId: tile.tileId});
+                    const verticalLettersArr = [...verticalLetters];
+                    verticalLettersArr.sort((a, b) => a.row - b.row);
+                    const sortedVerticalLetters = new Set(verticalLettersArr);
+                    sortedVerticalLetters.forEach((vl) => {
+                        verticalWord += vl.letter;
+                        verticalWordPoints += parseInt(vl.value);
+                    });
+                    wordsCreated.push({ word: verticalWord, points: verticalWordPoints });
+                }
+                if(horizontalLetters.size > 0) {
+                    let tile = turnLetters[0]
+                    let horizontalWordPoints = 0;
+                    horizontalLetters.add({row: tile.rowIndex, col: tile.colIndex, letter: tile.letter, value: tile.computedValue, tileId: tile.tileId});
+                    const horizontalLettersArr = [...horizontalLetters];
+                    horizontalLettersArr.sort((a, b) => a.col - b.col);
+                    const sortedHorizontalLetters = new Set(horizontalLettersArr);
+                    sortedHorizontalLetters.forEach((hl) => {
+                        horizontalWord += hl.letter;
+                        horizontalWordPoints += parseInt(hl.value);
+                    });
+                    wordsCreated.push({ word: horizontalWord, points: horizontalWordPoints });
+                }
+            }
+        } else {
+            isValid = true;
+            turnLetters.forEach(tl => {
+                let horizontalLetters = new Set();
+                let horizontalWord = "";
+                let horizontalWordPoints = 0;
+                let verticalLetters = new Set();
+                let verticalWord = "";
+                let verticalWordPoints = 0
+                const originCoords = { row: tl.rowIndex, col: tl.colIndex };
+                let coords = { row: tl.rowIndex, col: tl.colIndex };
+                upperTile = board.find(el => el.row === coords.row - 1 && el.col === coords.col && el.tileId !== '');
+                lowerTile = board.find(el => el.row === coords.row + 1 && el.col === coords.col && el.tileId !== '');
+                leftTile = board.find(el => el.row === coords.row && el.col === coords.col - 1 && el.tileId !== '');
+                rightTile = board.find(el => el.row === coords.row && el.col === coords.col + 1 && el.tileId !== '');
+
+                if(isHorizontal) {
+                    // sprawdzamy u gory
+                  if(upperTile) {
+                      while(upperTile && upperTile.tileId !== '' || coords.row <= 0) {
+                          // previousLetters.push(upperTile);
+                          verticalLetters.add(upperTile);
+                          upperTile = board.find(el => el.row === coords.row - 1 && el.col === coords.col && el.tileId !== '');
+                          coords = { row: coords.row - 1, col: coords.col }
+                      }
+                      coords = originCoords;
+                  }
+                  // sprawdzamy z dolu
+                  if(lowerTile) {
+                      while(lowerTile && lowerTile.tileId !== '' || coords.row >= 14) {
+                          // previousLetters.push(lowerTile);
+                          verticalLetters.add(lowerTile);
+                          lowerTile = board.find(el => el.row === coords.row + 1 && el.col === coords.col && el.tileId !== '');
+                          coords = { row: coords.row + 1, col: coords.col }
+                      }
+                      coords = originCoords;
+                  }
+              } else if (isVertical) {
+               
+                    // sprawdzmy z lewej
+                  if(leftTile) {
+                      while(leftTile && leftTile.tileId !== '' || coords.col <= 0) {
+                          // previousLetters.push(leftTile);
+                          horizontalLetters.add(leftTile);
+                          leftTile = board.find(el => el.row === coords.row && el.col === coords.col - 1 && el.tileId !== '');
+                          coords = { row: coords.row, col: coords.col - 1 }
+                      }
+                      coords = originCoords;
+                  }
+                  if(rightTile) {
+                      while(rightTile && rightTile.tileId !== '' || coords.col >= 14) {
+                          // previousLetters.push(rightTile);
+                          horizontalLetters.add(rightTile);
+                          rightTile = board.find(el => el.row === coords.row && el.col === coords.col + 1 && el.tileId !== '');
+                          coords = { row: coords.row, col: coords.col + 1 }
+                      }
+                      coords = originCoords;
+                  }
+              }
+               
+                if(verticalLetters.size > 0) {
+                    verticalLetters.add({row: tl.rowIndex, col: tl.colIndex, letter: tl.letter, tileId: tl.tileId, value: tl.computedValue});
+                    const verticalLettersArr = [...verticalLetters];
+                    verticalLettersArr.sort((a, b) => a.row - b.row);
+                    const sortedVerticalLetters = new Set(verticalLettersArr);
+                    sortedVerticalLetters.forEach((vl) => {
+                        verticalWord += vl.letter;
+                        verticalWordPoints += parseInt(vl.value);
+                    });
+                    wordsCreated.push({ word: verticalWord, points: verticalWordPoints });
+                }
+                if(horizontalLetters.size > 0) {
+                    horizontalLetters.add({row: tl.rowIndex, col: tl.colIndex, letter: tl.letter, tileId: tl.tileId, value: tl.computedValue});;
+                    const horizontalLettersArr = [...horizontalLetters];
+                    horizontalLettersArr.sort((a, b) => a.col - b.col);
+                    const sortedHorizontalLetters = new Set(horizontalLettersArr);
+                    sortedHorizontalLetters.forEach((hl) => {
+                        horizontalWord += hl.letter;
+                        horizontalWordPoints += parseInt(hl.value);
+                    });
+                    wordsCreated.push({ word: horizontalWord, points: horizontalWordPoints });
+                }
+            });
+        }
+        if(turnLetters.length > 1) {
+            let sum = 0;
+            if(isHorizontal) {
+                newWordsLettersArr.sort((a, b) => a.colIndex - b.colIndex);
+            } else if(isVertical) {
+                newWordsLettersArr.sort((a, b) => a.rowIndex - b.rowIndex);
+            }
+            newWordsLettersArr.forEach(tl => {
+                word += tl.letter;
+                sum += parseInt(tl.value);
+            });
+
+            wordsCreated.push({ word: word, points: sum });
+        }
+
+        if (isValid) {
+            setWords([...wordsCreated]);
+            setWordsLetters([...newWordsLettersArr]);
+            return true;
+        } else {
+            setWords([]);
+            setWordsLetters([]);
+            setTurnPoints(0)
+            return false;
+        }
+
+    };
+
+    useEffect(() => {
+        console.table(words);
+    }, [words]);
+
+    const handleMoveConfirmation = async () => {
+        wordFromLetters();
+
+        await socket.emit("moveConfirmed", { room: room, login: login, newWords: words });
+      };
+      
+      
+
+    const confirmMove = () => {
+        if (turnLetters.length > 0) {
+            handleMoveConfirmation();
+            setTurnLetters([]);
+            setGamePoints(gamePoints + turnPoints);
+            setTurnPoints(0);
+        }
+    }
+
+    useEffect(() => {
+        /// obliczanie sumy punktow z wystawionych kafelkow
+        /// tylko aktualizacja stanu turnLetters wplywa na sume punktow
+        console.table(turnLetters);
+        console.table(wordLetters);
+        let oldTilesPoints = 0;
+        wordLetters.forEach((wl) => {
+            if(!turnLetters.find(tl => tl.tileId === wl.tileId)) oldTilesPoints += parseInt(wl.value);
+        });
+        let newTilesPoints = 0;
+        let bonusWordMultiplier = 1;
+        /// liczymy sume punktow z nowych kafelkow uwzgledniajac premie literowe oraz slowne
+        turnLetters.forEach((tl) => {
+          newTilesPoints += parseInt(tl.computedValue);
+          if (doubleWordScores.find(el => el.x === tl.rowIndex && el.y === tl.colIndex)) bonusWordMultiplier = 2;
+          if (tripleWordScores.find(el => el.x === tl.rowIndex && el.y === tl.colIndex)) bonusWordMultiplier = 3;
+        });
+        setTurnPoints((newTilesPoints * bonusWordMultiplier) + oldTilesPoints);
+      }, [turnLetters, setTurnPoints, wordLetters]);
 
     return (
 
-        <WrapperContext.Provider value={{ hostUser, setHostUser, isGameStared, setIsGameStarted, resetTimer, timer, gamePoints, setGamePoints, turnPoints, setTurnPoints, turnLetters, setTurnLetters, isMyTurn, whoseTurn, confirmMove, board, setBoard, loginMessage, setLoginMessage, handleLogOut, doLogin, doSignUp, connectedUsers, availableRooms, room, socket, shuffleTiles, getTiles, tilesOnRack, numberOfTilesLeft, setTilesOnRack, removeTileFromRack,removeTileFromBoard, setRoom, isInRoom, setIsInRoom, login, setLogin, isAuth }}>
+        <WrapperContext.Provider value={{ validateMove, movePossible, turnCount, movesList, hostUser, setHostUser, isGameStared, setIsGameStarted, resetTimer, timer, gamePoints, setGamePoints, turnPoints, setTurnPoints, turnLetters, setTurnLetters, isMyTurn, whoseTurn, confirmMove, board, setBoard, loginMessage, setLoginMessage, handleLogOut, doLogin, doSignUp, connectedUsers, availableRooms, room, socket, shuffleTiles, getTiles, tilesOnRack, numberOfTilesLeft, setTilesOnRack, removeTileFromRack, removeTileFromBoard, setRoom, isInRoom, setIsInRoom, login, setLogin, isAuth }}>
             <>
-            <div className='app-container'>
-      
-                {isAuth ? 
-                    <LoggedIn />
-                    :
-                    <>
-                    <Login />
-                    <SignUp />
-                    </>
+                <div className='app-container'>
 
-                }
+                    {isAuth ?
+                        <LoggedIn />
+                        :
+                        <>
+                            <Login />
+                            <SignUp />
+                        </>
+                    }
 
-            </div>
+                </div>
             </>
         </WrapperContext.Provider>
 

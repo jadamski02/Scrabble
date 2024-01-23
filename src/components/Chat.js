@@ -1,13 +1,14 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { WrapperData } from '../Wrapper';
+import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 
 function Chat() {
 
   const [message, setMessage] = useState("");
   const [messageReceived, setMessageReceived] = useState([]);
 
-  const { room, socket, login } = WrapperData();
+  const { movesList, room, socket, login } = WrapperData();
 
   const sendMessage = () => {
     if(message !== "") {
@@ -49,15 +50,21 @@ function Chat() {
   }, [socket]);
 
   return (
-    <div className='chat'>
+    
+      <Tabs>
+    <TabList>
+      <Tab>Czat</Tab>
+      <Tab>Wyrazy</Tab>
+    </TabList>
 
-    <h2>Czat</h2>
+    <TabPanel>
+    <div className='chat'>
 
       <div className='chatMessages'>
       {messageReceived && messageReceived.map((mes) =>
         <p key={mes.date}>{mes.login}: {mes.message} - {mes.time}</p>
       )}
-    </div>
+      </div>
 
       <div className='chatInputWithButton'>
 
@@ -68,8 +75,25 @@ function Chat() {
         <button onClick={sendMessage}>Wyślij</button>
 
       </div>
+      </div>
+    </TabPanel>
+    <TabPanel>
+      <div className='movesList'>
+      {movesList.map((ml) => (
+        <div className='movesListElement' key={ml.turn_id}>
+          <ul>
+            {ml.words.map((w, index) => (
+              <li key={index}>{w.word}  <span style={{color: "#ff8503"}}>{w.points}</span></li>
+            ))}
+          </ul>
+      </div>
+))}
 
-    </div>
+      </div>
+      </TabPanel>
+  </Tabs>
+
+
   )
 }
 

@@ -17,7 +17,7 @@ function PlaceForTile(props) {
     let tileClass = "placeForTile";
     let isDraggable = "false";
     if(value !== "") {
-      tileClass = "tile";
+      tileClass = "tileMovable";
       isDraggable = "true";
     }
 

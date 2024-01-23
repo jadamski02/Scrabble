@@ -23,13 +23,7 @@ function InfoPanel() {
         odmianaPlytek = "Płytka";
     } 
 
-    useEffect(() => {
-        let sum = 0;
-        turnLetters.map((tl) => {
-          sum += parseInt(tl.value);
-        })
-        setTurnPoints(sum);
-      }, [turnLetters])
+
 
   return (
     <div className='infoPanel'>
@@ -41,13 +35,13 @@ function InfoPanel() {
               {hostUser.socketId == user.socketId ? 
                 (
                   <>
-                    { user.login } {gamePoints} gospodarz
+                    { user.login } { user.gamePoints} gospodarz
                   </>
                 ) 
                 :  
                 (
                   <>
-                  { user.login } {gamePoints}
+                  { user.login } { user.gamePoints }
                   </>
                 )
               }

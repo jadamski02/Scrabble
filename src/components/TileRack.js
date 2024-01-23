@@ -7,7 +7,7 @@ function TileRack() {
     const { tilesOnRack, setTilesOnRack, removeTileFromBoard, turnLetters, setTurnLetters } = WrapperData();
 
     const allowDropOnTileRack = (event) => {
-      const isEmptyPlace = ['tile', 'letter', 'value'].indexOf(event.target.className) != -1;
+      const isEmptyPlace = ['tileSet', 'tileMovable', 'letter', 'value'].indexOf(event.target.className) != -1;
       if(!isEmptyPlace) {
         event.preventDefault();
       }
@@ -18,15 +18,13 @@ function TileRack() {
 
       const dragSource = event.dataTransfer.getData("from");
       const letter = event.dataTransfer.getData("letter");
-      const value = event.dataTransfer.getData("value");
-      const tileId = event.dataTransfer.getData("tileId");
       const placeIdSource = event.dataTransfer.getData("placeId");
-      const rowId = event.dataTransfer.getData("rowId");
-      const colId = event.dataTransfer.getData("colId");
+      const value = parseInt(event.dataTransfer.getData("value"));
+      const tileId = parseInt(event.dataTransfer.getData("tileId"));
+      const rowId = parseInt(event.dataTransfer.getData("rowId"));
+      const colId = parseInt(event.dataTransfer.getData("colId"));
 
       let updatedTileRack;
-
-
 
       if(dragSource === "tileRack") {
         updatedTileRack = tilesOnRack.map((place) => {

@@ -101,6 +101,31 @@ body {
   height: 3vh;
 }
 
+.movesList {
+  background-color: #a3d4ec;
+  float: right;
+  display: flex;
+  flex-direction: column;
+  height: 50vh;
+  font-family: 'Verdana';
+  border-radius: 0.6vh;
+  width: 15vw;
+}
+
+.movesList ul {
+  list-style: none;
+  color: black;
+  text-align: center;
+  padding: 0.2vh;
+  margin: 0;
+  font-family: 'Verdana';
+  font-size: 2vh;
+}
+
+.movesListElement {
+  border-bottom: dashed 1px black;
+}
+
 .chat {
   float: right;
   display: flex;
@@ -187,7 +212,7 @@ body {
 .doubleLetterScore,
 .tripleLetterScore {
   border: 0.1vh solid white;
-  color:black;
+  color:white;
   width: 4.5vh;
   height: 4.5vh;
   display: flex;
@@ -198,23 +223,23 @@ body {
 }
 
 .middleCell {
-  background-color: #DFDF54 ;
+  background-color: #2B789D ;
 }
 
 .doubleWordScore {
-  background-color: deeppink;
+  background-color: #e38cb3;
 }
 
 .tripleWordScore {
-  background-color: orange;
+  background-color: #6d3936;
 }
 
 .doubleLetterScore {
-  background-color: burlywood;
+  background-color: #2f3131;
 }
 
 .tripleLetterScore {
-  background-color: green;
+  background-color: #d0302d;
 }
 
 .scrabble-board {
@@ -262,10 +287,26 @@ body {
   min-height: 5vh;
 }
 
-.tile{
+.tileSet{
   color: black;
   font-weight: 700;
-  border: 0.1vh solid black;
+  border: 0.2vh solid black;
+  width: 4.5vh;
+  height: 4.5vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.6vh;
+  background-color: rgb(236, 223, 209);
+  position: relative;
+  font-size: 2vh;
+  user-select: none;
+}
+
+.tileMovable{
+  color: red;
+  font-weight: 700;
+  border: 0.2vh solid black;
   width: 4.5vh;
   height: 4.5vh;
   display: flex;
@@ -281,7 +322,7 @@ body {
 .placeForTile {
   color: black;
   font-weight: 700;
-  border: 1px solid black;
+  border: 0.2vh solid black;
   width: 4.5vh;
   height: 4.5vh;
   display: flex;
@@ -355,6 +396,7 @@ body {
   text-align: center;
   font-family: arial;
   font-size: 2vh;
+  user-select: none;
 }
 
 .infoPanel {
@@ -381,3 +423,47 @@ body {
   font-weight: 700;
   text-align: center;
 }
+
+.react-tabs {
+  display: flex;
+  flex-direction: column;
+}
+
+.react-tabs__tab-list {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  background-color:#154C68;
+}
+
+.react-tabs__tab {
+  margin-right: 10px;
+  margin: 10px 10px 0px 10px;
+  padding: 10px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  color: white;
+}
+
+.react-tabs__tab--selected {
+  background-color:#2B789D;
+  color: #fff;
+}
+
+.react-tabs__tab-panel-list {
+  display: flex;
+  flex: 1;
+}
+
+.react-tabs__tab-panel {
+  display: none;
+  flex: 1;
+}
+
+.react-tabs__tab-panel.react-tabs__tab-panel--selected {
+  display: block;
+}
+
