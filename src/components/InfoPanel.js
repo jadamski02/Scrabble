@@ -3,12 +3,17 @@ import { WrapperData } from '../Wrapper';
 
 function InfoPanel() {
 
-    const { hostUser, setHostUser, isGameStarted, setIsGameStarted, resetTimer, timer, socket, gamePoints, setGamePoints, isMyTurn, whoseTurn, connectedUsers, turnLetters, turnPoints, setTurnPoints, setIsInRoom, numberOfTilesLeft, room  } = WrapperData();
+    const { room, setRoom, hostUser, setHostUser, isGameStarted, setIsGameStarted, resetTimer, timer, socket, gamePoints, setGamePoints, isMyTurn, whoseTurn, connectedUsers, turnLetters, turnPoints, setTurnPoints, setIsInRoom, numberOfTilesLeft } = WrapperData();
 
     const handleRoomQuit = () => {
-        setIsInRoom(false);
-        socket.emit("leave_room", room);
-      }
+      setIsInRoom(false);
+      socket.emit("leave_room", room);
+    }
+
+    const handleGameStart = () => {
+      setIsGameStarted(true);
+      socket.emit("start_game", room);
+    }
 
     let odmianaPozostalo = "Pozostało"
     let odmianaPlytek = "płytek";
@@ -23,12 +28,12 @@ function InfoPanel() {
         odmianaPlytek = "Płytka";
     } 
 
-
-
   return (
     <div className='infoPanel'>
       <div className='infoPanelBox'>
-        <h3>Pokój {room}</h3>
+        <h3>Pokój {room} <br/>
+        {connectedUsers.length === 1 ? connectedUsers.length + " gracz" : connectedUsers.length + " graczy"}
+        </h3>
         <div className="userList">
           {connectedUsers.map((user) => (
             <div className='user' key={user.socketId}>
@@ -52,6 +57,8 @@ function InfoPanel() {
       </div>
 
       <div className='infoPanelBox'>
+        {isGameStarted ? (
+        <>
         <p>{odmianaPozostalo} <span style={{color: "#ff8503"}}>{liczba}</span> {odmianaPlytek}</p>
         {isMyTurn ? 
           (
@@ -65,16 +72,36 @@ function InfoPanel() {
            <p>Kolej użytkownika {whoseTurn}</p>
            <p><span>&nbsp;&nbsp;</span></p>
           </>
+        
 
         } 
           <div className='quitBtn'>
             <button onClick={handleRoomQuit}>Opuść pokój</button>
           </div>
+        </> ) : (
+        <>
+        {hostUser.socketId === socket.id ?
+        <>
+         <div className='startBtn'>
+          <button onClick={handleGameStart}>Start</button>
+        </div>
+        </>
+        :
+        <>
+        Oczekiwanie na rozpoczęcie gry przez gospodarza
+        </>
+      }
+       
+        </>
+        )
+        }
+        
       </div>
+
       <div className='infoPanelBox'>
         <p>Czas na wykonanie ruchu</p>
         <p>{timer}</p>
-        <button onClick={resetTimer}>reset timer</button>
+        {/* <button onClick={resetTimer}>reset timer</button> */}
       </div>
     </div>
   )

@@ -44,12 +44,13 @@ export const Wrapper = () => {
     const [gamePoints, setGamePoints] = useState(0);    /// suma wszystkich zdobytych punktow
     const Ref = useRef(null);
     const [timer, setTimer] = useState("00:05:00");
-    const [isGameStared, setIsGameStarted] = useState(false);
+    const [isGameStarted, setIsGameStarted] = useState(false);
     const [hostUser, setHostUser] = useState(0);
     const [words, setWords] = useState([]); /// slowa utworzone w danej turze
     const [movesList, setMovesList] = useState([]);
     const [movePossible, setMovePossible] = useState(false);
     const [wordLetters, setWordsLetters] = useState([]);
+
 
     const getTimeRemaining = (e) => {
         const total =
@@ -110,10 +111,10 @@ export const Wrapper = () => {
     const memoizedClearTimer = useCallback(clearTimer, [clearTimer]);
 
     useEffect(() => {
-        if (isGameStared) {
+        if (isGameStarted) {
             memoizedClearTimer(getDeadTime());
         }
-    }, [isGameStared, memoizedClearTimer])
+    }, [isGameStarted, memoizedClearTimer])
 
     useEffect(() => {
 
@@ -167,6 +168,18 @@ export const Wrapper = () => {
             setNumberOfTilesLeft(data.numberOfTilesLeft);
         };
 
+        const gameStartedListener = (data) => {
+            getTiles(data.room);
+            setIsGameStarted(true);
+            setWhoseTurn(data.randomUser.login);
+            if (data.randomUser.socketId === socket.id) {
+                setIsMyTurn(true);
+            } else {
+                setIsMyTurn(false);
+            }
+        };
+        
+
         const updatedUsersListListener = (users) => {
             setConnectedUsers(users);
         };
@@ -217,9 +230,11 @@ export const Wrapper = () => {
         socket.on("user_disconnected", userDisconnectedListener);
         socket.on("update_game_stats", updateGameStatsListener);
         socket.on("set_host_user", setHostUserListener);
+        socket.on("game_started", gameStartedListener);
 
         return () => {
             socket.off("updated_users_list", updatedUsersListListener);
+            socket.off('game_started', gameStartedListener);
         };
     }, [cookies]);
 
@@ -303,10 +318,14 @@ export const Wrapper = () => {
     };
 
 
-    const getTiles = async () => {
+    const getTiles = async (whichRoom) => {
+        if (!whichRoom) {
+            console.error("Invalid room value:", whichRoom);
+            return;
+        }
         if (numberOfLettersToGet > 0) {
             try {
-                const response = await axios.get(`http://localhost:3001/letters/${room}/${numberOfLettersToGet}`);
+                const response = await axios.get(`http://localhost:3001/letters/${whichRoom}/${numberOfLettersToGet}`);
                 const newTiles = response.data;
 
                 const updatedTiles = tilesOnRack.map((singlePlace) => {
@@ -319,13 +338,13 @@ export const Wrapper = () => {
 
                 setTilesOnRack(updatedTiles);
                 setNumberOfLettersToGet(0);
-                socket.emit("set_number_of_tiles_left", { room: room });
+                socket.emit("set_number_of_tiles_left", { room: whichRoom });
             } catch (err) {
                 console.log(err);
             }
         }
     };
-
+    
     const removeTileFromRack = (event, placeId) => {
 
         if (event?.dataTransfer) {
@@ -376,112 +395,28 @@ export const Wrapper = () => {
         cookies.remove("email");
     };
 
-    const validateMove = () => {
-        if(wordFromLetters()) {
-            setMovePossible(true);
-        } else {
-            setMovePossible(false);
-        } 
-    };
-
-
     const wordFromLetters = () => {
-        /// pierwsza tura
-        if(turnCount === 0) {
-            if(turnLetters.length < 2) {
-                console.log("Za mało liter");
-                return false;
-            } else if(!turnLetters.find(el => el.rowIndex === 7 && el.colIndex === 7)) {
-                console.log("Zły punkt startowy");
-                return false;
-            }
-        }
+
         let isHorizontal = true;
         let isVertical = true;
         let horizontalAxis = turnLetters[0].rowIndex;
         let verticalAxis = turnLetters[0].colIndex;
         let word = "";
-        let isValid = false;
         let upperTile = null;
         let lowerTile = null;
         let leftTile = null;
         let rightTile = null;
         let wordsCreated = [];
         let newWordsLettersArr = turnLetters.map((tl) => {
-            return { rowIndex: tl.rowIndex, colIndex: tl.colIndex, letter: tl.letter, value: tl.computedValue, tileId: tl.tileId }});
+            return { rowIndex: tl.rowIndex, colIndex: tl.colIndex, letter: tl.letter, value: tl.computedValue, tileId: tl.tileId }
+        });
         // tworzymy zmienna tablicowa do zliczenia punktow calego slowa - poczatkowo same literki z tury biezacej);
-        
+
+        setMovePossible(true);
 
         // sprawdzamy czy zostal wylozony tylko jeden kafelek
-        if(turnLetters.length === 1) {
+        if (turnLetters.length === 1) {
             console.log("Pojedynczy kafelek");
-            isValid = true;
-        } else {
-            // sprawdzamy czy ulozenie nowych kafelkow jest poziome lub pionowe
-            turnLetters.forEach(tl => {
-                if (tl.rowIndex !== horizontalAxis) isHorizontal = false;
-                if (tl.colIndex !== verticalAxis) isVertical = false;
-            });
-        }
-
-        if(!isHorizontal && ! isVertical) {
-            console.log("Niepoprawne ulozenie kafelkow");
-            return false;
-        } 
-
-        const bordersWordLetters = (tile) => {
-            let upperNeighbor = newWordsLettersArr.find(tl => tl.rowIndex === tile.row - 1 && tl.colIndex === tile.col && tl.tileId !== '');
-            let lowerNeighbor = newWordsLettersArr.find(tl => tl.rowIndex === tile.row + 1 && tl.colIndex === tile.col && tl.tileId !== '');
-            let leftNeighbor = newWordsLettersArr.find(tl => tl.rowIndex === tile.row && tl.colIndex === tile.col - 1 && tl.tileId !== '');
-            let rightNeighbor = newWordsLettersArr.find(tl => tl.rowIndex === tile.row && tl.colIndex === tile.col + 1 && tl.tileId !== '');
-            console.log("UPPER TILE: ", upperNeighbor);
-            console.log("LOWER TILE: ", lowerNeighbor);
-            console.log("LEFT TILE: ", leftNeighbor);
-            console.log("RIGHT TILE: ", rightNeighbor);
-
-            if(isHorizontal) {
-                return (leftNeighbor || rightNeighbor) && !newWordsLettersArr.find(wl => wl.tileId === tile.tileId);
-            } else if(isVertical) {
-                return (upperNeighbor || lowerNeighbor) && !newWordsLettersArr.find(wl => wl.tileId === tile.tileId);
-            }
-
-        }
-
-        if(isHorizontal && !isVertical) {
-            for(let i = 0; i <= 14; i++) {
-                let tile = board.find(el => el.row === horizontalAxis && el.col === i && el.tileId !== '' && !turnLetters.find(tl => tl.tileId === el.tileId) && bordersWordLetters(el));
-                if(tile) {
-                    console.log("PUSH EXISTING TILE: ", tile);
-                    newWordsLettersArr.push({ rowIndex: tile.row, colIndex: tile.col, letter: tile.letter, value: tile.value, tileId: tile.tileId });
-                }
-            }
-            for(let i = 14; i > 0; i--) {
-                let tile = board.find(el => el.row === horizontalAxis && el.col === i && el.tileId !== '' && !turnLetters.find(tl => tl.tileId === el.tileId) && bordersWordLetters(el));
-                if(tile) {
-                    console.log("PUSH EXISTING TILE: ", tile);
-                    newWordsLettersArr.push({ rowIndex: tile.row, colIndex: tile.col, letter: tile.letter, value: tile.value, tileId: tile.tileId });
-                }
-            }
-        } else if(isVertical && !isHorizontal) {
-            for(let i = 0; i <= 14; i++) {
-                let tile = board.find(el => el.row === i && el.col === verticalAxis && el.tileId !== '' && !turnLetters.find(tl => tl.tileId === el.tileId) && bordersWordLetters(el));
-                if(tile) {
-                    console.log("PUSH EXISTING TILE: ", tile);
-                    newWordsLettersArr.push({ rowIndex: tile.row, colIndex: tile.col, letter: tile.letter, tileId: tile.tileId, value: tile.value });
-                }
-            }
-            for(let i = 14; i > 0; i--) {
-                let tile = board.find(el => el.row === i && el.col === verticalAxis && el.tileId !== '' && !turnLetters.find(tl => tl.tileId === el.tileId) && bordersWordLetters(el));
-                if(tile) {
-                    console.log("PUSH EXISTING TILE: ", tile);
-                    newWordsLettersArr.push({ rowIndex: tile.row, colIndex: tile.col, letter: tile.letter, tileId: tile.tileId, value: tile.value });
-                }
-            }
-        }
-        
-        // szukamy plytek ktore byly wylozone wczesniej i maja zostac wliczone do punktow w tej rundzie
-        // najpierw sprawdzmy czy zostala dolozona jedna plytka
-        if(turnLetters.length === 1) {
             // sprawdzamy czy plytka w ogole ma sasiadow
             let horizontalLetters = new Set();
             let horizontalWord = "";
@@ -493,54 +428,54 @@ export const Wrapper = () => {
             lowerTile = board.find(el => el.row === coords.row + 1 && el.col === coords.col && el.tileId !== '');
             leftTile = board.find(el => el.row === coords.row && el.col === coords.col - 1 && el.tileId !== '');
             rightTile = board.find(el => el.row === coords.row && el.col === coords.col + 1 && el.tileId !== '');
-            if(!upperTile && !lowerTile && !leftTile && !rightTile) {
+            if (!upperTile && !lowerTile && !leftTile && !rightTile) {
                 console.log("Płytka nie styka sie z innymi");
-                isValid = false;
+                setMovePossible(false);
             } else {
-                 // sprawdzamy u gory
-                 if(upperTile) {
-                    while(upperTile && upperTile.tileId !== '' || coords.row <= 0) {
+                // sprawdzamy u gory
+                if (upperTile) {
+                    while (upperTile && upperTile.tileId !== '' || coords.row <= 0) {
                         verticalLetters.add(upperTile);
-                        if(!newWordsLettersArr.find(wl => wl.tileId === upperTile.tileId)) newWordsLettersArr.push({ rowIndex: upperTile.row, colIndex: upperTile.col, letter: upperTile.letter, tileId: upperTile.tileId, value: upperTile.value });
+                        if (!newWordsLettersArr.find(wl => wl.tileId === upperTile.tileId)) newWordsLettersArr.push({ rowIndex: upperTile.row, colIndex: upperTile.col, letter: upperTile.letter, tileId: upperTile.tileId, value: upperTile.value });
                         upperTile = board.find(el => el.row === coords.row - 1 && el.col === coords.col && el.tileId !== '');
                         coords = { row: coords.row - 1, col: coords.col }
                     }
                     coords = originCoords;
                 }
                 // sprawdzamy z dolu
-                if(lowerTile) {
-                    while(lowerTile && lowerTile.tileId !== '' || coords.row >= 14) {
+                if (lowerTile) {
+                    while (lowerTile && lowerTile.tileId !== '' || coords.row >= 14) {
                         verticalLetters.add(lowerTile);
-                        if(!newWordsLettersArr.find(wl => wl.tileId === lowerTile.tileId)) newWordsLettersArr.push({ rowIndex: lowerTile.row, colIndex: lowerTile.col, letter: lowerTile.letter, tileId: lowerTile.tileId, value: lowerTile.value });
+                        if (!newWordsLettersArr.find(wl => wl.tileId === lowerTile.tileId)) newWordsLettersArr.push({ rowIndex: lowerTile.row, colIndex: lowerTile.col, letter: lowerTile.letter, tileId: lowerTile.tileId, value: lowerTile.value });
                         lowerTile = board.find(el => el.row === coords.row + 1 && el.col === coords.col && el.tileId !== '');
                         coords = { row: coords.row + 1, col: coords.col }
                     }
                     coords = originCoords;
                 }
                 // sprawdzmy z lewej
-                if(leftTile) {
-                    while(leftTile && leftTile.tileId !== '' || coords.col <= 0) {
+                if (leftTile) {
+                    while (leftTile && leftTile.tileId !== '' || coords.col <= 0) {
                         horizontalLetters.add(leftTile);
-                        if(!newWordsLettersArr.find(wl => wl.tileId === leftTile.tileId)) newWordsLettersArr.push({ rowIndex: leftTile.row, colIndex: leftTile.col, letter: leftTile.letter, tileId: leftTile.tileId, value: leftTile.value });
+                        if (!newWordsLettersArr.find(wl => wl.tileId === leftTile.tileId)) newWordsLettersArr.push({ rowIndex: leftTile.row, colIndex: leftTile.col, letter: leftTile.letter, tileId: leftTile.tileId, value: leftTile.value });
                         leftTile = board.find(el => el.row === coords.row && el.col === coords.col - 1 && el.tileId !== '');
                         coords = { row: coords.row, col: coords.col - 1 }
                     }
                     coords = originCoords;
                 }
-                if(rightTile) {
-                    while(rightTile && rightTile.tileId !== '' || coords.col >= 14) {
+                if (rightTile) {
+                    while (rightTile && rightTile.tileId !== '' || coords.col >= 14) {
                         horizontalLetters.add(rightTile);
-                        if(!newWordsLettersArr.find(wl => wl.tileId === rightTile.tileId)) newWordsLettersArr.push({ rowIndex: rightTile.row, colIndex: rightTile.col, letter: rightTile.letter, tileId: rightTile.tileId, value: rightTile.value });
+                        if (!newWordsLettersArr.find(wl => wl.tileId === rightTile.tileId)) newWordsLettersArr.push({ rowIndex: rightTile.row, colIndex: rightTile.col, letter: rightTile.letter, tileId: rightTile.tileId, value: rightTile.value });
                         rightTile = board.find(el => el.row === coords.row && el.col === coords.col + 1 && el.tileId !== '');
                         coords = { row: coords.row, col: coords.col + 1 }
                     }
                     coords = originCoords;
                 }
-                
-                if(verticalLetters.size > 0) {
+
+                if (verticalLetters.size > 0) {
                     let tile = turnLetters[0];
                     let verticalWordPoints = 0;
-                    verticalLetters.add({row: tile.rowIndex, col: tile.colIndex, letter: tile.letter, value: tile.computedValue, tileId: tile.tileId});
+                    verticalLetters.add({ row: tile.rowIndex, col: tile.colIndex, letter: tile.letter, value: tile.computedValue, tileId: tile.tileId });
                     const verticalLettersArr = [...verticalLetters];
                     verticalLettersArr.sort((a, b) => a.row - b.row);
                     const sortedVerticalLetters = new Set(verticalLettersArr);
@@ -550,10 +485,10 @@ export const Wrapper = () => {
                     });
                     wordsCreated.push({ word: verticalWord, points: verticalWordPoints });
                 }
-                if(horizontalLetters.size > 0) {
+                if (horizontalLetters.size > 0) {
                     let tile = turnLetters[0]
                     let horizontalWordPoints = 0;
-                    horizontalLetters.add({row: tile.rowIndex, col: tile.colIndex, letter: tile.letter, value: tile.computedValue, tileId: tile.tileId});
+                    horizontalLetters.add({ row: tile.rowIndex, col: tile.colIndex, letter: tile.letter, value: tile.computedValue, tileId: tile.tileId });
                     const horizontalLettersArr = [...horizontalLetters];
                     horizontalLettersArr.sort((a, b) => a.col - b.col);
                     const sortedHorizontalLetters = new Set(horizontalLettersArr);
@@ -564,8 +499,57 @@ export const Wrapper = () => {
                     wordsCreated.push({ word: horizontalWord, points: horizontalWordPoints });
                 }
             }
+        // jesli wylozono wiecej niz jedna plytke
         } else {
-            isValid = true;
+            // sprawdzamy czy ulozenie nowych kafelkow jest poziome lub pionowe
+            turnLetters.forEach(tl => {
+                if (tl.rowIndex !== horizontalAxis) isHorizontal = false;
+                if (tl.colIndex !== verticalAxis) isVertical = false;
+            });
+
+            /// funkcja pomocnicza do sprawdzania czy nowe kafelki stykaja sie z tymi wylozonymi wczesniej i z ktorej strony
+            const bordersWordLetters = (tile) => {
+                let upperNeighbor = newWordsLettersArr.find(tl => tl.rowIndex === tile.row - 1 && tl.colIndex === tile.col && tl.tileId !== '');
+                let lowerNeighbor = newWordsLettersArr.find(tl => tl.rowIndex === tile.row + 1 && tl.colIndex === tile.col && tl.tileId !== '');
+                let leftNeighbor = newWordsLettersArr.find(tl => tl.rowIndex === tile.row && tl.colIndex === tile.col - 1 && tl.tileId !== '');
+                let rightNeighbor = newWordsLettersArr.find(tl => tl.rowIndex === tile.row && tl.colIndex === tile.col + 1 && tl.tileId !== '');
+
+                if (isHorizontal) {
+                    return (leftNeighbor || rightNeighbor) && !newWordsLettersArr.find(wl => wl.tileId === tile.tileId);
+                } else if (isVertical) {
+                    return (upperNeighbor || lowerNeighbor) && !newWordsLettersArr.find(wl => wl.tileId === tile.tileId);
+                }
+
+            }
+
+            if (isHorizontal && !isVertical) {
+                for (let i = 0; i <= 14; i++) {
+                    let tile = board.find(el => el.row === horizontalAxis && el.col === i && el.tileId !== '' && !turnLetters.find(tl => tl.tileId === el.tileId) && bordersWordLetters(el));
+                    if (tile) {
+                        newWordsLettersArr.push({ rowIndex: tile.row, colIndex: tile.col, letter: tile.letter, value: tile.value, tileId: tile.tileId });
+                    }
+                }
+                for (let i = 14; i > 0; i--) {
+                    let tile = board.find(el => el.row === horizontalAxis && el.col === i && el.tileId !== '' && !turnLetters.find(tl => tl.tileId === el.tileId) && bordersWordLetters(el));
+                    if (tile) {
+                        newWordsLettersArr.push({ rowIndex: tile.row, colIndex: tile.col, letter: tile.letter, value: tile.value, tileId: tile.tileId });
+                    }
+                }
+            } else if (isVertical && !isHorizontal) {
+                for (let i = 0; i <= 14; i++) {
+                    let tile = board.find(el => el.row === i && el.col === verticalAxis && el.tileId !== '' && !turnLetters.find(tl => tl.tileId === el.tileId) && bordersWordLetters(el));
+                    if (tile) {
+                        newWordsLettersArr.push({ rowIndex: tile.row, colIndex: tile.col, letter: tile.letter, tileId: tile.tileId, value: tile.value });
+                    }
+                }
+                for (let i = 14; i > 0; i--) {
+                    let tile = board.find(el => el.row === i && el.col === verticalAxis && el.tileId !== '' && !turnLetters.find(tl => tl.tileId === el.tileId) && bordersWordLetters(el));
+                    if (tile) {
+                        newWordsLettersArr.push({ rowIndex: tile.row, colIndex: tile.col, letter: tile.letter, tileId: tile.tileId, value: tile.value });
+                    }
+                }
+            }
+
             turnLetters.forEach(tl => {
                 let horizontalLetters = new Set();
                 let horizontalWord = "";
@@ -580,52 +564,52 @@ export const Wrapper = () => {
                 leftTile = board.find(el => el.row === coords.row && el.col === coords.col - 1 && el.tileId !== '');
                 rightTile = board.find(el => el.row === coords.row && el.col === coords.col + 1 && el.tileId !== '');
 
-                if(isHorizontal) {
+                if (isHorizontal) {
                     // sprawdzamy u gory
-                  if(upperTile) {
-                      while(upperTile && upperTile.tileId !== '' || coords.row <= 0) {
-                          // previousLetters.push(upperTile);
-                          verticalLetters.add(upperTile);
-                          upperTile = board.find(el => el.row === coords.row - 1 && el.col === coords.col && el.tileId !== '');
-                          coords = { row: coords.row - 1, col: coords.col }
-                      }
-                      coords = originCoords;
-                  }
-                  // sprawdzamy z dolu
-                  if(lowerTile) {
-                      while(lowerTile && lowerTile.tileId !== '' || coords.row >= 14) {
-                          // previousLetters.push(lowerTile);
-                          verticalLetters.add(lowerTile);
-                          lowerTile = board.find(el => el.row === coords.row + 1 && el.col === coords.col && el.tileId !== '');
-                          coords = { row: coords.row + 1, col: coords.col }
-                      }
-                      coords = originCoords;
-                  }
-              } else if (isVertical) {
-               
+                    if (upperTile) {
+                        while (upperTile && upperTile.tileId !== '' || coords.row <= 0) {
+                            // previousLetters.push(upperTile);
+                            verticalLetters.add(upperTile);
+                            upperTile = board.find(el => el.row === coords.row - 1 && el.col === coords.col && el.tileId !== '');
+                            coords = { row: coords.row - 1, col: coords.col }
+                        }
+                        coords = originCoords;
+                    }
+                    // sprawdzamy z dolu
+                    if (lowerTile) {
+                        while (lowerTile && lowerTile.tileId !== '' || coords.row >= 14) {
+                            // previousLetters.push(lowerTile);
+                            verticalLetters.add(lowerTile);
+                            lowerTile = board.find(el => el.row === coords.row + 1 && el.col === coords.col && el.tileId !== '');
+                            coords = { row: coords.row + 1, col: coords.col }
+                        }
+                        coords = originCoords;
+                    }
+                } else if (isVertical) {
+
                     // sprawdzmy z lewej
-                  if(leftTile) {
-                      while(leftTile && leftTile.tileId !== '' || coords.col <= 0) {
-                          // previousLetters.push(leftTile);
-                          horizontalLetters.add(leftTile);
-                          leftTile = board.find(el => el.row === coords.row && el.col === coords.col - 1 && el.tileId !== '');
-                          coords = { row: coords.row, col: coords.col - 1 }
-                      }
-                      coords = originCoords;
-                  }
-                  if(rightTile) {
-                      while(rightTile && rightTile.tileId !== '' || coords.col >= 14) {
-                          // previousLetters.push(rightTile);
-                          horizontalLetters.add(rightTile);
-                          rightTile = board.find(el => el.row === coords.row && el.col === coords.col + 1 && el.tileId !== '');
-                          coords = { row: coords.row, col: coords.col + 1 }
-                      }
-                      coords = originCoords;
-                  }
-              }
-               
-                if(verticalLetters.size > 0) {
-                    verticalLetters.add({row: tl.rowIndex, col: tl.colIndex, letter: tl.letter, tileId: tl.tileId, value: tl.computedValue});
+                    if (leftTile) {
+                        while (leftTile && leftTile.tileId !== '' || coords.col <= 0) {
+                            // previousLetters.push(leftTile);
+                            horizontalLetters.add(leftTile);
+                            leftTile = board.find(el => el.row === coords.row && el.col === coords.col - 1 && el.tileId !== '');
+                            coords = { row: coords.row, col: coords.col - 1 }
+                        }
+                        coords = originCoords;
+                    }
+                    if (rightTile) {
+                        while (rightTile && rightTile.tileId !== '' || coords.col >= 14) {
+                            // previousLetters.push(rightTile);
+                            horizontalLetters.add(rightTile);
+                            rightTile = board.find(el => el.row === coords.row && el.col === coords.col + 1 && el.tileId !== '');
+                            coords = { row: coords.row, col: coords.col + 1 }
+                        }
+                        coords = originCoords;
+                    }
+                }
+
+                if (verticalLetters.size > 0) {
+                    verticalLetters.add({ row: tl.rowIndex, col: tl.colIndex, letter: tl.letter, tileId: tl.tileId, value: tl.computedValue });
                     const verticalLettersArr = [...verticalLetters];
                     verticalLettersArr.sort((a, b) => a.row - b.row);
                     const sortedVerticalLetters = new Set(verticalLettersArr);
@@ -635,8 +619,8 @@ export const Wrapper = () => {
                     });
                     wordsCreated.push({ word: verticalWord, points: verticalWordPoints });
                 }
-                if(horizontalLetters.size > 0) {
-                    horizontalLetters.add({row: tl.rowIndex, col: tl.colIndex, letter: tl.letter, tileId: tl.tileId, value: tl.computedValue});;
+                if (horizontalLetters.size > 0) {
+                    horizontalLetters.add({ row: tl.rowIndex, col: tl.colIndex, letter: tl.letter, tileId: tl.tileId, value: tl.computedValue });;
                     const horizontalLettersArr = [...horizontalLetters];
                     horizontalLettersArr.sort((a, b) => a.col - b.col);
                     const sortedHorizontalLetters = new Set(horizontalLettersArr);
@@ -647,43 +631,61 @@ export const Wrapper = () => {
                     wordsCreated.push({ word: horizontalWord, points: horizontalWordPoints });
                 }
             });
-        }
-        if(turnLetters.length > 1) {
+
             let sum = 0;
-            if(isHorizontal) {
+            let bonusWordMultiplier = 1;
+            if (isHorizontal) {
                 newWordsLettersArr.sort((a, b) => a.colIndex - b.colIndex);
-            } else if(isVertical) {
+            } else if (isVertical) {
                 newWordsLettersArr.sort((a, b) => a.rowIndex - b.rowIndex);
             }
             newWordsLettersArr.forEach(tl => {
                 word += tl.letter;
                 sum += parseInt(tl.value);
+                if (doubleWordScores.find(el => el.x === tl.rowIndex && el.y === tl.colIndex)) bonusWordMultiplier = 2;
+                if (tripleWordScores.find(el => el.x === tl.rowIndex && el.y === tl.colIndex)) bonusWordMultiplier = 3;
             });
 
-            wordsCreated.push({ word: word, points: sum });
+            wordsCreated.push({ word: word, points: sum * bonusWordMultiplier });
         }
 
-        if (isValid) {
-            setWords([...wordsCreated]);
-            setWordsLetters([...newWordsLettersArr]);
-            return true;
-        } else {
-            setWords([]);
-            setWordsLetters([]);
-            setTurnPoints(0)
-            return false;
+        /// pierwsza tura
+        if (turnCount === 0) {
+            if (turnLetters.length < 2) {
+                console.log("Za mało liter");
+                setMovePossible(false);
+            } else if (!turnLetters.find(el => el.rowIndex === 7 && el.colIndex === 7)) {
+                console.log("Zły punkt startowy");
+                setMovePossible(false);
+            }
         }
+        if (turnLetters.length > 1 && (!isHorizontal && !isVertical)) {
+            console.log("Niepoprawne ulozenie kafelkow");
+            setMovePossible(false);
+        }
+
+        if (wordsCreated.length === 0) {
+            setMovePossible(false);
+        }
+
+        setWords(wordsCreated);
 
     };
 
-    useEffect(() => {
-        console.table(words);
-    }, [words]);
-
     const handleMoveConfirmation = async () => {
-        wordFromLetters();
-
-        await socket.emit("moveConfirmed", { room: room, login: login, newWords: words });
+        const validatedWords = await validateWords(words);
+        if(validatedWords) {
+            await socket.emit("moveConfirmed", { room: room, login: login, newWords: words });
+            setTurnPoints(0);
+            setTurnLetters([]);
+            setMovePossible(false);
+            getTiles(room);
+            console.log("Wszystkie slowa poprawne");
+        } else {
+            // inne instrukcje
+            console.log("Nie wszystkie slowa poprawne");
+        }
+        
       };
       
       
@@ -691,40 +693,56 @@ export const Wrapper = () => {
     const confirmMove = () => {
         if (turnLetters.length > 0) {
             handleMoveConfirmation();
-            setTurnLetters([]);
-            setGamePoints(gamePoints + turnPoints);
-            setTurnPoints(0);
         }
     }
 
+    const validateWords = async (wordsArray) => {
+        let allWordsValid = true;
+        await axios.post("http://localhost:3001/validateWords", { words: wordsArray })
+        .then((res) => {
+            res.data.wordsValidationResult.forEach((word) => {
+                if(!word.isWord) {
+                    allWordsValid = false;
+                    return;
+                }
+            });
+        })
+        .catch((err) => {
+            console.log(err);
+        })
+        return allWordsValid;
+    };
+
+    const handleSkip = () => {
+        socket.emit("skipTurn", { room: room, login: login});
+    }
+    
+
     useEffect(() => {
-        /// obliczanie sumy punktow z wystawionych kafelkow
-        /// tylko aktualizacja stanu turnLetters wplywa na sume punktow
-        console.table(turnLetters);
-        console.table(wordLetters);
-        let oldTilesPoints = 0;
-        wordLetters.forEach((wl) => {
-            if(!turnLetters.find(tl => tl.tileId === wl.tileId)) oldTilesPoints += parseInt(wl.value);
+        if (turnLetters.length > 0) {
+          wordFromLetters();
+        } else {
+            setMovePossible(false);
+        }
+      }, [turnLetters]);
+
+      useEffect(() => {
+        let sum = 0;
+        words.forEach((word) => {
+          sum += word.points;
         });
-        let newTilesPoints = 0;
-        let bonusWordMultiplier = 1;
-        /// liczymy sume punktow z nowych kafelkow uwzgledniajac premie literowe oraz slowne
-        turnLetters.forEach((tl) => {
-          newTilesPoints += parseInt(tl.computedValue);
-          if (doubleWordScores.find(el => el.x === tl.rowIndex && el.y === tl.colIndex)) bonusWordMultiplier = 2;
-          if (tripleWordScores.find(el => el.x === tl.rowIndex && el.y === tl.colIndex)) bonusWordMultiplier = 3;
-        });
-        setTurnPoints((newTilesPoints * bonusWordMultiplier) + oldTilesPoints);
-      }, [turnLetters, setTurnPoints, wordLetters]);
+        setTurnPoints(sum);
+      }, [words]);
+
 
     return (
 
-        <WrapperContext.Provider value={{ validateMove, movePossible, turnCount, movesList, hostUser, setHostUser, isGameStared, setIsGameStarted, resetTimer, timer, gamePoints, setGamePoints, turnPoints, setTurnPoints, turnLetters, setTurnLetters, isMyTurn, whoseTurn, confirmMove, board, setBoard, loginMessage, setLoginMessage, handleLogOut, doLogin, doSignUp, connectedUsers, availableRooms, room, socket, shuffleTiles, getTiles, tilesOnRack, numberOfTilesLeft, setTilesOnRack, removeTileFromRack, removeTileFromBoard, setRoom, isInRoom, setIsInRoom, login, setLogin, isAuth }}>
+        <WrapperContext.Provider value={{ handleSkip, wordFromLetters, room, setRoom, getTiles, movePossible, turnCount, movesList, hostUser, setHostUser, isGameStarted, setIsGameStarted, resetTimer, timer, gamePoints, setGamePoints, turnPoints, setTurnPoints, turnLetters, setTurnLetters, isMyTurn, whoseTurn, confirmMove, board, setBoard, loginMessage, setLoginMessage, handleLogOut, doLogin, doSignUp, connectedUsers, availableRooms, socket, shuffleTiles, getTiles, tilesOnRack, numberOfTilesLeft, setTilesOnRack, removeTileFromRack, removeTileFromBoard, isInRoom, setIsInRoom, login, setLogin, isAuth }}>
             <>
                 <div className='app-container'>
 
                     {isAuth ?
-                        <LoggedIn />
+                        <LoggedIn/>
                         :
                         <>
                             <Login />

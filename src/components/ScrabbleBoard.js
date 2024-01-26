@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import Cell from './Cell';
+import CellWithPrompt from './CellWithPrompt';
 import { WrapperData } from '../Wrapper';
 import { doubleLetterScores, doubleWordScores, tripleLetterScores, tripleWordScores } from './ExtraPoints';
 
@@ -19,7 +20,7 @@ const createEmptyBoard = (rows, cols) => {
 
 const ScrabbleBoard = () => {
 
-  const { validateMove, socket, room, removeTileFromRack, board, setBoard, turnLetters, setTurnLetters, setTurnPoints } = WrapperData();
+  const { isMyTurn, socket, room, removeTileFromRack, board, setBoard, turnLetters, setTurnLetters, setTurnPoints } = WrapperData();
 
   const handleDragStartFromCell = (e, cell, isDraggable) => {
     if(isDraggable) {
@@ -34,7 +35,7 @@ const ScrabbleBoard = () => {
 
   const allowDropOnCell = (event) => {
     const isEmptyCell = ['tileMovable', 'tileSet', 'letter', 'value'].indexOf(event.target.className) !== -1;
-    if(!isEmptyCell) {
+    if(!isEmptyCell && isMyTurn) {
       event.preventDefault();
     }
   };
@@ -120,12 +121,21 @@ const ScrabbleBoard = () => {
       };
     }, [setBoard, socket]);
 
-    useEffect(() => {
-      if(turnLetters.length > 0) validateMove();
-    }, [turnLetters, setTurnLetters]);
-    
-
-
+    const confirmCellWithPrompt = (tileId, chosenLetter) => {
+      let updatedBoard;
+      updatedBoard = board.map((cell) => {
+        if(cell.tileId === tileId) {
+          return {...cell, letter: chosenLetter};
+        }
+        return cell;
+        });
+        setBoard(updatedBoard);
+        let letterToUpdate = turnLetters.filter(tl => tl.tileId === tileId);
+        letterToUpdate[0] = {...letterToUpdate[0], letter: chosenLetter};
+        let oldLettersArr = turnLetters.filter(tl => tl.tileId !== tileId);
+        oldLettersArr.push(letterToUpdate[0]);
+        setTurnLetters(oldLettersArr);
+    }
 
   return (
     <div className="scrabble-board">
@@ -166,26 +176,44 @@ const ScrabbleBoard = () => {
         } else if(cell.value !== '' && !isDraggable) {
           cellStyle="tileSet";
         }
+        if(cell.letter === '' && cell.value === 0) {
+          return (
+            <CellWithPrompt
+              key={index}
+              cell={cell}
+              isDraggable={isDraggable}
+              bonusPlaceholder={bonusPlaceholder}
+              cellStyle={cellStyle}
+              colIndex={cell.col}
+              rowIndex={cell.row}
+              letter={cell.letter}
+              value={cell.value}
+              tileId={cell.tileId}
+              confirmCellWithPrompt={confirmCellWithPrompt}
+            />
+          );
+        } else {
+          return (
+            <Cell
+              key={index}
+              cell={cell}
+              isDraggable={isDraggable}
+              bonusPlaceholder={bonusPlaceholder}
+              cellStyle={cellStyle}
+              colIndex={cell.col}
+              rowIndex={cell.row}
+              letter={cell.letter}
+              value={cell.value}
+              tileId={cell.tileId}
+              handleDropOnCell={handleDropOnCell}
+              allowDropOnCell={allowDropOnCell}
+              handleDragStartFromCell={handleDragStartFromCell}
+            />
+          );
+        }
 
-        return (
-          <Cell
-            key={index}
-            cell={cell}
-            isDraggable={isDraggable}
-            bonusPlaceholder={bonusPlaceholder}
-            cellStyle={cellStyle}
-            colIndex={cell.col}
-            rowIndex={cell.row}
-            letter={cell.letter}
-            value={cell.value}
-            tileId={cell.tileId}
-            handleDropOnCell={handleDropOnCell}
-            allowDropOnCell={allowDropOnCell}
-            handleDragStartFromCell={handleDragStartFromCell}
-          />
-        )
-      }
-      )}
+
+      })}
     </div>
   );
 };

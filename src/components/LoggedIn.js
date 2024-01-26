@@ -7,7 +7,7 @@ import { WrapperData } from '../Wrapper';
 import InfoPanel from './InfoPanel';
 
 
-function LoggedIn() {
+function LoggedIn(props) {
 
   const { isInRoom, handleLogOut, login } = WrapperData();
 
@@ -18,7 +18,7 @@ function LoggedIn() {
         <>
             <GameArea />
             <div className='chat-area'>
-            <InfoPanel />
+            <InfoPanel/>
             <Chat />
             </div>
         </>
@@ -28,15 +28,13 @@ function LoggedIn() {
         <div className='loggedIn'>
         <h1>Jesteś zalogowany jako {login}</h1>
         <AvailableRooms />
-        <CreateRoomForm />
+        <CreateRoomForm/>
         <div className='logOutBtn'>
           <button onClick={handleLogOut}>Wyloguj się</button>
         </div>
         </div>
         </>
         }
-
-
             </>
             
             

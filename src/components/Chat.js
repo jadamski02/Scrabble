@@ -5,10 +5,9 @@ import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 
 function Chat() {
 
+  const {  movesList, room, socket, login } = WrapperData();
   const [message, setMessage] = useState("");
   const [messageReceived, setMessageReceived] = useState([]);
-
-  const { movesList, room, socket, login } = WrapperData();
 
   const sendMessage = () => {
     if(message !== "") {
@@ -16,8 +15,6 @@ function Chat() {
       setMessage("");
     }
   };
-
-
 
   useEffect(() => {
     socket.on("receive_message", (data) => {

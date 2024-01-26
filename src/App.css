@@ -32,6 +32,18 @@ body {
   margin: 3vh;
   align-items: center;
   float: left;
+  color: white;
+}
+
+.availableRooms h3,
+.createRoomForm h3 {
+  border: 0.1vh solid white;
+  border-radius: 0.5vh;
+  padding: 3vh
+}
+
+.availableRooms h4 {
+  text-align: center;
 }
 
 .loggedIn h1, h3 {
@@ -304,7 +316,7 @@ body {
 }
 
 .tileMovable{
-  color: red;
+  color: black;
   font-weight: 700;
   border: 0.2vh solid black;
   width: 4.5vh;
@@ -374,7 +386,8 @@ body {
   color: red;
 }
 
-.quitBtn {
+.quitBtn,
+.startBtn {
   text-align: center;
 }
 
@@ -389,6 +402,20 @@ body {
   font-family: 'Verdana';
   width: 12vh;
   font-size: 1.2vh;
+}
+
+.startBtn button {
+  color: limegreen;
+  margin: 1vh;
+  border-radius: 0.5vh;
+  height: 3vh;
+  cursor: pointer;
+  text-align: center;
+  line-height: 0.5vh;
+  font-family: 'Verdana';
+  width: 12vh;
+  font-size: 1.2vh;
+  font-weight: 700;
 }
 
 .premia {
@@ -465,5 +492,46 @@ body {
 
 .react-tabs__tab-panel.react-tabs__tab-panel--selected {
   display: block;
+}
+
+.cellWithPrompt {
+  width: 4.5vh;
+  height: 4.5vh;
+  border: none;
+  text-align: center;
+  font-size: 2vh;
+  font-weight: 700;
+  color: black;
+  background-color: rgb(236, 223, 209);
+  font-weight: 700;
+  border: 0.2vh solid black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.6vh;
+  cursor: grab;
+  position: relative;
+  font-size: 2vh;
+  font-family: 'Syne';
+}
+
+.cellWithPrompt input {
+  width: 4vh;
+  height: 4vh;
+  border: none;
+  text-align: center;
+  font-size: 2vh;
+  font-weight: 700;
+  color: red;
+  background-color: rgb(236, 223, 209);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.6vh;
+  cursor: grab;
+  position: relative;
+  font-size: 2vh;
+  font-family: 'Syne';
 }
 
