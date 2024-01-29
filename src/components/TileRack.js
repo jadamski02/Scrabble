@@ -4,11 +4,11 @@ import { WrapperData } from '../Wrapper';
 
 function TileRack() {
 
-    const { tilesOnRack, setTilesOnRack, removeTileFromBoard, turnLetters, setTurnLetters } = WrapperData();
+    const { gameEnded, tilesOnRack, setTilesOnRack, removeTileFromBoard, turnLetters, setTurnLetters } = WrapperData();
 
     const allowDropOnTileRack = (event) => {
       const isEmptyPlace = ['tileSet', 'tileMovable', 'letter', 'value'].indexOf(event.target.className) != -1;
-      if(!isEmptyPlace) {
+      if(!isEmptyPlace && !gameEnded) {
         event.preventDefault();
       }
     };
@@ -17,12 +17,17 @@ function TileRack() {
       event.preventDefault();
 
       const dragSource = event.dataTransfer.getData("from");
-      const letter = event.dataTransfer.getData("letter");
       const placeIdSource = event.dataTransfer.getData("placeId");
       const value = parseInt(event.dataTransfer.getData("value"));
       const tileId = parseInt(event.dataTransfer.getData("tileId"));
       const rowId = parseInt(event.dataTransfer.getData("rowId"));
       const colId = parseInt(event.dataTransfer.getData("colId"));
+
+      let letter = event.dataTransfer.getData("letter");
+
+      if(value === 0 ) {
+        letter = "";
+      }
 
       let updatedTileRack;
 
@@ -51,12 +56,12 @@ function TileRack() {
     };
 
     const handleDragStartFromTileRack = (e, placeForTile) => {
-      e.dataTransfer.setData("from", "tileRack");
-      e.dataTransfer.setData("letter", placeForTile.tile.letter);
-      e.dataTransfer.setData("value", placeForTile.tile.value);
-      e.dataTransfer.setData("tileId", placeForTile.tile.id);
-      e.dataTransfer.setData("placeId", placeForTile.id);
-      e.dataTransfer.setData("tileEvent", e);
+        e.dataTransfer.setData("from", "tileRack");
+        e.dataTransfer.setData("letter", placeForTile.tile.letter);
+        e.dataTransfer.setData("value", placeForTile.tile.value);
+        e.dataTransfer.setData("tileId", placeForTile.tile.id);
+        e.dataTransfer.setData("placeId", placeForTile.id);
+        e.dataTransfer.setData("tileEvent", e);
     }
 
 

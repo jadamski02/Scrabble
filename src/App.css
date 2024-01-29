@@ -39,7 +39,8 @@ body {
 .createRoomForm h3 {
   border: 0.1vh solid white;
   border-radius: 0.5vh;
-  padding: 3vh
+  padding: 3vh;
+  background-color:#154C68;
 }
 
 .availableRooms h4 {
@@ -56,6 +57,7 @@ body {
   background-color:#154C68;
   border: solid 0.1vh white;
   padding: 0.5vh;
+  display: flex;
 }
 
 .roomBox {
@@ -64,9 +66,21 @@ body {
 }
 
 .roomBox img {
-  display: inline-block;
-  width: 0.25vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4vh;
   margin: auto;
+}
+
+.roomLeftColumn {
+  float: left;
+  width: 70%;
+}
+
+.roomRightColumn {
+  float: left;
+  width: 30%;
 }
 
 .createRoomForm input,
@@ -113,30 +127,7 @@ body {
   height: 3vh;
 }
 
-.movesList {
-  background-color: #a3d4ec;
-  float: right;
-  display: flex;
-  flex-direction: column;
-  height: 50vh;
-  font-family: 'Verdana';
-  border-radius: 0.6vh;
-  width: 15vw;
-}
 
-.movesList ul {
-  list-style: none;
-  color: black;
-  text-align: center;
-  padding: 0.2vh;
-  margin: 0;
-  font-family: 'Verdana';
-  font-size: 2vh;
-}
-
-.movesListElement {
-  border-bottom: dashed 1px black;
-}
 
 .chat {
   float: right;
@@ -145,7 +136,7 @@ body {
   height: 50vh;
   font-family: 'Verdana';
   background-color: #154C68;
-  border-radius: 0.6vh;
+  border-radius: 1vh;
   width: 15vw;
 }
 
@@ -176,10 +167,64 @@ body {
 .chatMessages {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 6vh;
+  padding-bottom: 1vh;
   background-color: #a3d4ec;
   padding: 1vh;
+}
 
+.movesList {
+  background-color: #a3d4ec;
+  float: right;
+  display: flex;
+  flex-direction: column;
+  height: 50vh;
+  font-family: 'Verdana';
+  border-radius: 0.6vh;
+  width: 15vw;
+  overflow-y: auto;
+}
+
+.movesList ul {
+  list-style: none;
+  color: black;
+  text-align: center;
+  padding: 0.2vh;
+  margin: 0;
+  font-family: 'Verdana';
+  font-size: 2vh;
+}
+
+.movesListElement {
+  border-bottom: dashed 1px black;
+}
+
+.userMessage {
+  color:black;
+}
+
+.systemInfoDefault {
+  color: #ff8503;
+}
+
+.systemInfoNegative {
+  color: crimson;
+}
+
+.systemInfoPositive {
+  color: limegreen;
+}
+
+.systemInfoDefault,
+.systemInfoPositive,
+.systemInfoNegative,
+.userMessage {
+  font-weight: 700;
+  font-size: 1.5vh;
+  padding: 0.1vh;
+  margin-bottom: 0.1vh;
+  display: flex;
+  flex-direction: column;
+  max-width: 90%;
 }
 
 .chatInputWithButton {
@@ -391,8 +436,8 @@ body {
   text-align: center;
 }
 
-.quitBtn button {
-  color:crimson;
+.quitBtn button,
+.startBtn button {
   margin: 1vh;
   border-radius: 0.5vh;
   height: 3vh;
@@ -400,22 +445,17 @@ body {
   text-align: center;
   line-height: 0.5vh;
   font-family: 'Verdana';
-  width: 12vh;
-  font-size: 1.2vh;
+  width: 14vh;
+  font-size: 1.4vh;
+  font-weight: 700;
+}
+
+.quitBtn button {
+  color: crimson;
 }
 
 .startBtn button {
-  color: limegreen;
-  margin: 1vh;
-  border-radius: 0.5vh;
-  height: 3vh;
-  cursor: pointer;
-  text-align: center;
-  line-height: 0.5vh;
-  font-family: 'Verdana';
-  width: 12vh;
-  font-size: 1.2vh;
-  font-weight: 700;
+  color: limegreen
 }
 
 .premia {
@@ -462,14 +502,16 @@ body {
   padding: 0;
   margin: 0;
   background-color:#154C68;
+  border-radius: 1vh 1vh 0 0;
 }
 
 .react-tabs__tab {
-  margin-right: 10px;
-  margin: 10px 10px 0px 10px;
-  padding: 10px;
+  margin: 1vh 1vh 0 1vh;
+  padding: 1vh;
   cursor: pointer;
-  border: 1px solid #ccc;
+  border-top: 0.1vh solid #ccc;
+  border-left: 0.1vh solid #ccc;
+  border-right: 0.1vh solid #ccc;
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
   color: white;
@@ -522,7 +564,7 @@ body {
   text-align: center;
   font-size: 2vh;
   font-weight: 700;
-  color: red;
+  color: black;
   background-color: rgb(236, 223, 209);
   font-weight: 700;
   display: flex;
@@ -533,5 +575,12 @@ body {
   position: relative;
   font-size: 2vh;
   font-family: 'Syne';
+}
+
+.acceptLetter {
+  position: absolute;
+  bottom: 0.1vh;
+  left: 0.2vh;
+  font-size: 1vh;
 }
 

@@ -20,7 +20,7 @@ function CreateRoomForm() {
   const createRoom = async () => {
     if (roomName !== "") {
       try {
-        const response = await axios.post("http://localhost:3001/createRoom", {
+        const response = await axios.post("http://localhost:3001/scrabble/createRoom", {
           login: login,
           socketId: socket.id,
           roomName: roomName,

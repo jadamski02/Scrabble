@@ -1,62 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WrapperData } from '../Wrapper';
 
 function CellWithPrompt(props) {
-
     const { turnLetters } = WrapperData();
     const [chosenLetter, setChosenLetter] = useState("");
 
     let isMyLetter = false;
-    if(turnLetters.includes(props.tileId)) {
+    if (turnLetters.find(tl => tl.tileId === props.tileId)) {
         isMyLetter = true;
     };
 
     const handleChange = (e) => {
         setChosenLetter(e.target.value.toUpperCase());
+    };
+
+    const handleReset = () => {
+        setChosenLetter("");
     }
 
-    const handleConformLetter = (e) => {
-        if(e.keyCode === 13) {
-            props.confirmCellWithPrompt(props.tileId, chosenLetter);
-        }
-    }
+    useEffect(() => {
+      if(isMyLetter) {
+        props.updateCellWithPrompt(props.tileId, chosenLetter);
+      }
+    }, [chosenLetter]);
 
-    if(isMyLetter) {
+    if (isMyLetter) {
         return (
             <div
-            draggable={props.isDraggable ? "true" : "false"}
+                draggable={props.isDraggable ? "true" : "false"}
                 className="cellWithPrompt"
-                >
-                <input type="text" 
-                value={chosenLetter} 
-                onChange={(e) => handleChange(e)}
-                maxLength="1"
-                onKeyUp={(e) => {handleConformLetter(e)}}
+                onDragStart={e => props.handleDragStartFromCell(e, props.cell, props.isDraggable)}
+            >
+                <input
+                    type="text"
+                    value={chosenLetter}
+                    onChange={(e) => handleChange(e)}
+                    maxLength="1"
+                    placeholder='?'
                 ></input>
+                {chosenLetter !== "" ? (
+                    <div className='acceptLetter'>
+                        &#9989;
+                    </div>
+                ) : (
+                    <div className='acceptLetter'>
+                        &#10060;
+                    </div>
+                )}
                 <div className='value'>
-                  {props.value}
+                    {props.value}
                 </div>
             </div>
-          )
+        )
     } else {
         return (
             <div
-            draggable={props.isDraggable ? "true" : "false"}
                 className={props.cellStyle}
-                onDrop={e => props.handleDropOnCell(e, props.rowIndex, props.colIndex)}
-                onDragOver={e => props.allowDropOnCell(e)}
                 onDragStart={e => props.handleDragStartFromCell(e, props.cell, props.isDraggable)}
-                >
+            >
                 <div className='premia'>{props.cell.value === "" ? props.bonusPlaceholder : ""}</div>
                 {props.rowIndex === 7 && props.colIndex === 7 && props.cell.value === '' ? <span>&#10040;</span> : ""}
                 <div className='letter'>{props.cell.letter}</div>
                 <div className='value'>
-                  {props.cell.value}
+                    {props.cell.value}
                 </div>
             </div>
-          )
-        }
-  
+        )
+    }
 }
 
-export default CellWithPrompt
+export default CellWithPrompt;

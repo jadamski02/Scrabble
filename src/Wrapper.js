@@ -43,112 +43,62 @@ export const Wrapper = () => {
     const [turnPoints, setTurnPoints] = useState(0);    /// suma punktow w jednej turze (nowe kafelki oraz kafelki wylozone wczesniej)
     const [gamePoints, setGamePoints] = useState(0);    /// suma wszystkich zdobytych punktow
     const Ref = useRef(null);
-    const [timer, setTimer] = useState("00:05:00");
     const [isGameStarted, setIsGameStarted] = useState(false);
     const [hostUser, setHostUser] = useState(0);
     const [words, setWords] = useState([]); /// slowa utworzone w danej turze
     const [movesList, setMovesList] = useState([]);
     const [movePossible, setMovePossible] = useState(false);
     const [wordLetters, setWordsLetters] = useState([]);
-
-
-    const getTimeRemaining = (e) => {
-        const total =
-            Date.parse(e) - Date.parse(new Date());
-        const seconds = Math.floor((total / 1000) % 60);
-        const minutes = Math.floor(
-            (total / 1000 / 60) % 60
-        );
-        const hours = Math.floor(
-            (total / 1000 / 60 / 60) % 24
-        );
-        return {
-            total,
-            hours,
-            minutes,
-            seconds,
-        };
-    };
-
-    const startTimer = (e) => {
-        let { total, hours, minutes, seconds } =
-            getTimeRemaining(e);
-        if (total >= 0) {
-
-            setTimer(
-                (hours > 9 ? hours : "0" + hours) +
-                ":" +
-                (minutes > 9
-                    ? minutes
-                    : "0" + minutes) +
-                ":" +
-                (seconds > 9 ? seconds : "0" + seconds)
-            );
-        }
-    };
-
-    const clearTimer = (e) => {
-
-        setTimer("00:05:00");
-
-        if (Ref.current) clearInterval(Ref.current);
-        const id = setInterval(() => {
-            startTimer(e);
-        }, 1000);
-        Ref.current = id;
-    };
-
-    const getDeadTime = () => {
-        let deadline = new Date();
-        deadline.setSeconds(deadline.getSeconds() + 300);
-        return deadline;
-    };
-
-    const resetTimer = () => {
-        clearTimer(getDeadTime());
-    };
-
-    const memoizedClearTimer = useCallback(clearTimer, [clearTimer]);
+    const [timer, setTimer] = useState(300);
+    const [isTimerActive, setIsTimerActive] = useState(false);
+    const [gameEnded, setGameEnded] = useState(false);
+    const [winner, setWinner] = useState(null);
 
     useEffect(() => {
-        if (isGameStarted) {
-            memoizedClearTimer(getDeadTime());
-        }
-    }, [isGameStarted, memoizedClearTimer])
+        console.table(turnLetters);
+    }, [turnLetters]);
+
+    axios.defaults.withCredentials = true;
 
     useEffect(() => {
 
         const checkLoginStatus = async () => {
             const token = cookies.get("token");
             if (token === undefined) return;
-
-            axios.post("http://localhost:3001/checkLoginStatus", {
-                token: token
-            })
-                .then((res) => {
-                    if (res.status === 200) {
-                        const { token } = res.data;
-                        cookies.set("token", token);
-                        setToken(token);
-                        setIsAuth(true);
-                    }
-                })
-                .catch((error) => {
-                    if (error.response && error.response.status === 403) {
-                        cookies.remove("login");
-                        cookies.remove("email");
-                        cookies.remove("token");
-                    } else if (error.response && error.response.status === 401) {
-                        console.error('Niepoprawne dane - 401');
-                    } else {
-                        console.error('Error:', error);
-                    }
-                });
+        
+            try {
+                const response = await axios.post(
+                    "http://localhost:3001/auth/checkLoginStatus",
+                    { token: token },
+                    { withCredentials: true }
+                );
+        
+                if (response.status === 200) {
+                    const { token } = response.data;
+                    cookies.set("token", token);
+                    setToken(token);
+                    setIsAuth(true);
+                }
+            } catch (error) {
+                if (error.response && error.response.status === 403) {
+                    cookies.remove("login");
+                    cookies.remove("email");
+                    cookies.remove("token");
+                } else if (error.response && error.response.status === 401) {
+                    console.error('Niepoprawne dane - 401');
+                } else {
+                    console.error('Error:', error);
+                }
+            }
         };
-
+        
         const getAvailableRooms = async () => {
             try {
-                const response = await axios.get(`http://localhost:3001/rooms`);
+                const response = await axios.get(
+                    "http://localhost:3001/scrabble/rooms",
+                    { withCredentials: true }
+                );
+        
                 const roomsWithUsers = response.data;
                 const formattedRooms = formatRooms(roomsWithUsers);
                 setAvailableRooms(formattedRooms);
@@ -156,7 +106,7 @@ export const Wrapper = () => {
                 console.error(error);
             }
         };
-
+        
         const fetchData = async () => {
             await checkLoginStatus();
             await getAvailableRooms();
@@ -172,6 +122,7 @@ export const Wrapper = () => {
             getTiles(data.room);
             setIsGameStarted(true);
             setWhoseTurn(data.randomUser.login);
+            startTimer();
             if (data.randomUser.socketId === socket.id) {
                 setIsMyTurn(true);
             } else {
@@ -217,12 +168,23 @@ export const Wrapper = () => {
                 setWhoseTurn(data.newUserTurn.login);
             }
             setTurnCount(data.turnCount);
-            setMovesList(organizeWordsByTurnCount(data.words));
+            if(data.words.length > 0) setMovesList(organizeWordsByTurnCount(data.words));
         };
 
         const setHostUserListener = (data) => {
             setHostUser(data);
         };
+
+        const resetTimerListener = () => {
+            resetTimer();
+        };
+
+        const gameEndedListener = (data) => {
+            setWinner(data.winner);
+            setGameEnded(true);
+            setIsTimerActive(false);
+            setIsMyTurn(false);
+        }
 
         socket.on("set_number_of_tiles_left", numberOfTilesLeftListener);
         socket.on("updated_users_list", updatedUsersListListener);
@@ -231,6 +193,8 @@ export const Wrapper = () => {
         socket.on("update_game_stats", updateGameStatsListener);
         socket.on("set_host_user", setHostUserListener);
         socket.on("game_started", gameStartedListener);
+        socket.on("reset_timer", resetTimerListener);
+        socket.on("game_ended", gameEndedListener);
 
         return () => {
             socket.off("updated_users_list", updatedUsersListListener);
@@ -238,39 +202,28 @@ export const Wrapper = () => {
         };
     }, [cookies]);
 
-    const formatRooms = (roomsWithUsers) => {
-        const roomsList = Object.keys(roomsWithUsers);
-        const formattedRooms = roomsList.map(room => {
-            return {
-                roomName: room,
-                userCount: roomsWithUsers[room].users.length,
-                isPrivate: roomsWithUsers[room].isPrivate
-            };
-        });
-        return formattedRooms;
-    };
-
     const doLogin = async (login, password) => {
         setLoginMessage('');
         if (login.length === 0) setLoginMessage("Proszę podać poprawny login");
         if (login.length === 0) setLoginMessage("Proszę podać poprawne hasło");
-        axios.post("http://localhost:3001/login", {
-            login,
-            password,
-        })
-            .then((res) => {
-                if (res.status === 200) {
-                    const { login, email, token } = res.data;
-                    cookies.set("login", login);
-                    cookies.set("email", email);
-                    cookies.set("token", token);
-                    setLogin(login);
-                    setEmail(email);
-                    setToken(token);
-                    setIsAuth(true);
-                }
-            })
-            .catch((error) => {
+        try {
+            const response = await axios.post("http://localhost:3001/auth/login", {
+                login,
+                password,
+            });
+            
+            if (response.status === 200) {
+                const { login, email, token } = response.data;
+                cookies.set("login", login);
+                cookies.set("email", email);
+                cookies.set("token", token);
+                setLogin(login);
+                setEmail(email);
+                setToken(token);
+                setIsAuth(true);
+            }
+        } catch (error) {
+            if (error.response && error.response.status) {
                 switch (error.response.status) {
                     case 401:
                         console.error('Niepoprawne dane - 401');
@@ -287,14 +240,13 @@ export const Wrapper = () => {
                     default:
                         console.error('Error:', error);
                 }
-
-            });
-
+            }
+        }
     }
 
     const doSignUp = async (login, email, password) => {
         try {
-            const response = await axios.post("http://localhost:3001/signUp", {
+            const response = await axios.post("http://localhost:3001/auth/signUp", {
                 login,
                 email,
                 password
@@ -310,26 +262,56 @@ export const Wrapper = () => {
                 setToken(token);
                 setIsAuth(true);
             } else {
-                console.log("Unexpected status code:", response.status);
+                console.log("Niespodziewany błąd: ", response.status);
             }
         } catch (error) {
             console.log("Error:", error);
         }
     };
 
+    const handleLogOut = async () => {
+        try {
+            const response = await axios.delete(`http://localhost:3001/auth/logout`, { refreshToken: token });
+            if(response.status === 204) {
+                setIsAuth(false);
+                cookies.remove("token");
+                cookies.remove("login");
+                cookies.remove("email");
+            }
+        } catch (error) {
+            console.log("Błąd wylogowania:", error);
+        }
+        
+    };
+
+    const formatRooms = (roomsWithUsers) => {
+        const roomsList = Object.keys(roomsWithUsers);
+        const formattedRooms = roomsList.map(room => {
+            return {
+                roomName: room,
+                userCount: roomsWithUsers[room].users.length,
+                isPrivate: roomsWithUsers[room].isPrivate
+            };
+        });
+        return formattedRooms;
+    };
 
     const getTiles = async (whichRoom) => {
         if (!whichRoom) {
             console.error("Invalid room value:", whichRoom);
             return;
         }
+        if(numberOfLettersToGet > numberOfTilesLeft) {
+            setNumberOfLettersToGet(numberOfTilesLeft);
+        }
         if (numberOfLettersToGet > 0) {
+
             try {
-                const response = await axios.get(`http://localhost:3001/letters/${whichRoom}/${numberOfLettersToGet}`);
+                const response = await axios.get(`http://localhost:3001/scrabble/letters/${whichRoom}/${numberOfLettersToGet}`);
                 const newTiles = response.data;
 
                 const updatedTiles = tilesOnRack.map((singlePlace) => {
-                    if (singlePlace.tile.value === "") return {
+                    if (singlePlace.tile.value === "" && newTiles.length > 0) return {
                         id: singlePlace.id,
                         tile: newTiles.shift()
                     }
@@ -338,12 +320,18 @@ export const Wrapper = () => {
 
                 setTilesOnRack(updatedTiles);
                 setNumberOfLettersToGet(0);
-                socket.emit("set_number_of_tiles_left", { room: whichRoom });
+                await socket.emit("set_number_of_tiles_left", { room: whichRoom });
             } catch (err) {
                 console.log(err);
             }
-        }
+        } 
     };
+
+    // useEffect(() => {
+    //     if(numberOfLettersToGet > numberOfTilesLeft) {
+    //         setNumberOfLettersToGet(numberOfTilesLeft); 
+    //     }
+    // }, [numberOfTilesLeft])
     
     const removeTileFromRack = (event, placeId) => {
 
@@ -385,14 +373,6 @@ export const Wrapper = () => {
     const shuffleTiles = () => {
         const newArr = [...tilesOnRack];
         setTilesOnRack(newArr.sort(() => Math.random() - 0.5));
-    };
-
-    const handleLogOut = () => {
-        axios.delete(`http://localhost:3001/logout`, { refreshToken: token })
-        setIsAuth(false);
-        cookies.remove("token");
-        cookies.remove("login");
-        cookies.remove("email");
     };
 
     const wordFromLetters = () => {
@@ -634,19 +614,44 @@ export const Wrapper = () => {
 
             let sum = 0;
             let bonusWordMultiplier = 1;
+
+            // if (isHorizontal) {
+            //     newWordsLettersArr.sort((a, b) => a.colIndex - b.colIndex);
+            // } else if (isVertical) {
+            //     newWordsLettersArr.sort((a, b) => a.rowIndex - b.rowIndex);
+            // }
+            
+            // newWordsLettersArr.forEach(tl => {
+            //     word += tl.letter;
+            //     sum += parseInt(tl.value);
+            //     if (doubleWordScores.find(el => el.x === tl.rowIndex && el.y === tl.colIndex)) bonusWordMultiplier = 2;
+            //     if (tripleWordScores.find(el => el.x === tl.rowIndex && el.y === tl.colIndex)) bonusWordMultiplier = 3;
+            // });
+
+            // wordsCreated.push({ word: word, points: sum * bonusWordMultiplier });
+
             if (isHorizontal) {
                 newWordsLettersArr.sort((a, b) => a.colIndex - b.colIndex);
             } else if (isVertical) {
                 newWordsLettersArr.sort((a, b) => a.rowIndex - b.rowIndex);
             }
+
+            
+            console.log("Sorted newWordsLettersArr:", newWordsLettersArr);
+            
             newWordsLettersArr.forEach(tl => {
                 word += tl.letter;
                 sum += parseInt(tl.value);
                 if (doubleWordScores.find(el => el.x === tl.rowIndex && el.y === tl.colIndex)) bonusWordMultiplier = 2;
                 if (tripleWordScores.find(el => el.x === tl.rowIndex && el.y === tl.colIndex)) bonusWordMultiplier = 3;
+                console.log("Current tl:", tl);
+                console.log("Current word:", word);
+                console.log("Current sum:", sum);
+                console.log("Current bonusWordMultiplier:", bonusWordMultiplier);
             });
-
+            
             wordsCreated.push({ word: word, points: sum * bonusWordMultiplier });
+            
         }
 
         /// pierwsza tura
@@ -675,21 +680,52 @@ export const Wrapper = () => {
     const handleMoveConfirmation = async () => {
         const validatedWords = await validateWords(words);
         if(validatedWords) {
-            await socket.emit("moveConfirmed", { room: room, login: login, newWords: words });
+            await socket.emit("moveConfirmed", { room: room, login: login, newWords: words, turnPoints: turnPoints, newTilesNumber: turnLetters.length });
             setTurnPoints(0);
             setTurnLetters([]);
             setMovePossible(false);
             getTiles(room);
+            const emptyRackPlaces = tilesOnRack.filter((place) => place.tile.value === "");
+            if(emptyRackPlaces.length === 7 && numberOfTilesLeft === 0) {
+                socket.emit("end_of_letters", { login: login, room: room});
+            }
             console.log("Wszystkie slowa poprawne");
         } else {
             // inne instrukcje
             console.log("Nie wszystkie slowa poprawne");
         }
         
-      };
-      
-      
+    };
 
+    const restartTurnLetters = () => {
+
+        let emptyRackPlaces = tilesOnRack.filter((place) => place.tile.value === "");
+        let takenRackPlaces = tilesOnRack.filter((place) => place.tile.value !== "");
+        let newRackPlaces = [];
+
+        turnLetters.forEach((tl) => {
+            const emptyPlace = emptyRackPlaces.shift();
+            newRackPlaces.push({ id: emptyPlace.id, tile: { id: tl.tileId, letter: tl.letter, value: tl.value } });
+        });
+
+        const newBoard = board.map((cell) => {
+            if (turnLetters.find(tl => tl.tileId === cell.tileId)) {
+                return { ...cell, letter: '', value: '', tileId: '' }
+            } else return cell
+        });
+
+        setBoard(newBoard);
+        setNumberOfLettersToGet(numberOfLettersToGet - turnLetters.length);
+        socket.emit("update_board", { room: room, board: newBoard });
+        setTurnLetters([]);
+        setTurnPoints(0);
+
+        newRackPlaces = newRackPlaces.concat(takenRackPlaces);
+        newRackPlaces.sort((a, b) => a.id - b.id);
+        setTilesOnRack(newRackPlaces);
+
+    }
+      
     const confirmMove = () => {
         if (turnLetters.length > 0) {
             handleMoveConfirmation();
@@ -698,7 +734,7 @@ export const Wrapper = () => {
 
     const validateWords = async (wordsArray) => {
         let allWordsValid = true;
-        await axios.post("http://localhost:3001/validateWords", { words: wordsArray })
+        await axios.post("http://localhost:3001/scrabble/validateWords", { words: wordsArray })
         .then((res) => {
             res.data.wordsValidationResult.forEach((word) => {
                 if(!word.isWord) {
@@ -714,8 +750,20 @@ export const Wrapper = () => {
     };
 
     const handleSkip = () => {
-        socket.emit("skipTurn", { room: room, login: login});
-    }
+        socket.emit("skipTurn", { room: room, login: login, cause: "manualSkip"});
+    };
+
+    const startTimer = () => {
+        setIsTimerActive(true);
+      };
+    
+    const pauseTimer = () => {
+        setIsTimerActive(false);
+    };
+
+    const resetTimer = () => {
+        setTimer(300);
+    };
     
 
     useEffect(() => {
@@ -731,18 +779,32 @@ export const Wrapper = () => {
         words.forEach((word) => {
           sum += word.points;
         });
+        if(turnLetters.length === 7) {
+            sum += 50;
+        }
         setTurnPoints(sum);
       }, [words]);
+
+      useEffect(() => {
+        if(!movePossible) {
+            setWords([]);
+        }
+      }, [movePossible]);
 
 
     return (
 
-        <WrapperContext.Provider value={{ handleSkip, wordFromLetters, room, setRoom, getTiles, movePossible, turnCount, movesList, hostUser, setHostUser, isGameStarted, setIsGameStarted, resetTimer, timer, gamePoints, setGamePoints, turnPoints, setTurnPoints, turnLetters, setTurnLetters, isMyTurn, whoseTurn, confirmMove, board, setBoard, loginMessage, setLoginMessage, handleLogOut, doLogin, doSignUp, connectedUsers, availableRooms, socket, shuffleTiles, getTiles, tilesOnRack, numberOfTilesLeft, setTilesOnRack, removeTileFromRack, removeTileFromBoard, isInRoom, setIsInRoom, login, setLogin, isAuth }}>
+        <WrapperContext.Provider value={{ winner, gameEnded, restartTurnLetters, handleSkip, wordFromLetters, room, setRoom, getTiles, movePossible, turnCount, movesList, hostUser, setHostUser, isGameStarted, setIsGameStarted, gamePoints, setGamePoints, turnPoints, setTurnPoints, turnLetters, setTurnLetters, isMyTurn, whoseTurn, confirmMove, board, setBoard, loginMessage, setLoginMessage, handleLogOut, doLogin, doSignUp, connectedUsers, availableRooms, socket, shuffleTiles, getTiles, tilesOnRack, numberOfTilesLeft, setTilesOnRack, removeTileFromRack, removeTileFromBoard, isInRoom, setIsInRoom, login, setLogin, isAuth }}>
             <>
                 <div className='app-container'>
 
                     {isAuth ?
-                        <LoggedIn/>
+                        <LoggedIn
+                        timer={timer}
+                        setTimer={setTimer}
+                        isTimerActive={isTimerActive}
+                        setIsTimerActive={setIsTimerActive}
+                        />
                         :
                         <>
                             <Login />

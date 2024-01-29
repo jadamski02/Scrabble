@@ -2,23 +2,24 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { WrapperData } from '../Wrapper';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
+import UserMessage from './UserMessage';
+import SystemInfo from './SystemInfo';
 
 function Chat() {
 
-  const {  movesList, room, socket, login } = WrapperData();
+  const { movesList, room, socket, login } = WrapperData();
   const [message, setMessage] = useState("");
   const [messageReceived, setMessageReceived] = useState([]);
 
   const sendMessage = () => {
     if(message !== "") {
-      socket.emit("send_message", { login: login, message: message, room: room });
+      socket.emit("send_message", { login: login, message: message, room: room, type: "userMessage" });
       setMessage("");
     }
   };
 
   useEffect(() => {
     socket.on("receive_message", (data) => {
-      console.log(data)
       const currentDate = new Date();
         var hours = currentDate.getHours();
         var minutes = currentDate.getMinutes();
@@ -34,7 +35,8 @@ function Chat() {
             "message": data.message,
             "time": timeStamp,
             "date": currentDate,
-            "login": data.login
+            "login": data.login,
+            "type": data.type
           }
         ]
       );
@@ -58,9 +60,17 @@ function Chat() {
     <div className='chat'>
 
       <div className='chatMessages'>
-      {messageReceived && messageReceived.map((mes) =>
-        <p key={mes.date}>{mes.login}: {mes.message} - {mes.time}</p>
-      )}
+        {messageReceived ?
+        (
+          messageReceived.map((mes, index) => {
+            {if(mes.type !== "userMessage") return <SystemInfo key={index} mes={mes} />}
+            {if(mes.type === "userMessage") {return <UserMessage key={index} mes={mes} />}
+             } }
+        )
+        )
+        :
+        null
+        }
       </div>
 
       <div className='chatInputWithButton'>
@@ -80,7 +90,14 @@ function Chat() {
         <div className='movesListElement' key={ml.turn_id}>
           <ul>
             {ml.words.map((w, index) => (
-              <li key={index}>{w.word}  <span style={{color: "#ff8503"}}>{w.points}</span></li>
+              <li key={index}>
+                {w.word === "bonus" ? (
+                  <span style={{ color: "red" }}> {w.word}</span>
+                ) : (
+                  <span>{w.word}</span>
+                )}
+                <span style={{ color: "#ff8503" }}> {w.points}</span>
+              </li>
             ))}
           </ul>
       </div>

@@ -23,7 +23,7 @@ function Room(props) {
 
   const joinRoom = () => {
     setErrorMessage('');
-    axios.post("http://localhost:3001/joinRoom", {
+    axios.post("http://localhost:3001/scrabble/joinRoom", {
       login: login,
       socketId: socket.id,
       roomName: props.room.roomName,
@@ -39,9 +39,13 @@ function Room(props) {
       setRoomPassword('');
       switch (error.response.status) {
         case 403: {
-            console.error('Niepoprawne hasło', error);
-            setErrorMessage("Niepoprawne hasło");
+            console.error(error.response.data.message);
+            setErrorMessage(error.response.data.message);
         } break;
+        case 409: {
+            console.error('Pokój pełny', error);
+            setErrorMessage("Pokój pełny");
+        }
         default: {
             console.error('Error:', error);
         }
@@ -51,18 +55,12 @@ function Room(props) {
 
   return (
     <div className='room'>
-      <div className='roomBox'>Pokój: {props.room.roomName}</div>
-      <div className='roomBox'>Liczba graczy: {props.room.userCount}</div>
-      <div className='roomBox'>
-        <button onClick={joinExistingRoom}>Dołącz</button>
-        {props.room.isPrivate ? (
-          <img src='lock_closed.png' alt='Locked' />
-        ) : (
-          <img src='lock_open.png' alt='Unlocked' />
-        )}
-      </div>
-
-      {isPasswordPromptVisible && (
+      <div className='roomLeftColumn'>
+        <div className='roomBox'>Pokój: {props.room.roomName}</div>
+        <div className='roomBox'>Liczba graczy: {props.room.userCount}/4</div>
+        <div className='roomBox'>
+          <button onClick={joinExistingRoom}>Dołącz</button><br/>{errorMessage}
+          {isPasswordPromptVisible && (
         <div className='password-prompt'>
           <input
             type='password'
@@ -73,9 +71,25 @@ function Room(props) {
           <br/>
           <button onClick={handlePasswordSubmit}>Potwierdź</button>
           <br/>
-          {errorMessage}
+
         </div>
       )}
+        </div>
+      </div>
+
+      <div className='roomRightColumn'>
+        <div className='roomBox'>
+          {props.room.isPrivate ? (
+              <img src='lock_closed.png' alt='Locked' />
+            ) : (
+              <img src='lock_open.png' alt='Unlocked' />
+            )}
+        </div>
+       
+      </div>
+      
+
+
     </div>
   );
 }

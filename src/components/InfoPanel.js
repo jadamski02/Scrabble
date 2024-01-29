@@ -1,107 +1,131 @@
 import React, { useEffect } from 'react';
 import { WrapperData } from '../Wrapper';
+import GameTimer from './GameTimer';
 
-function InfoPanel() {
+function InfoPanel(props) {
 
-    const { room, setRoom, hostUser, setHostUser, isGameStarted, setIsGameStarted, resetTimer, timer, socket, gamePoints, setGamePoints, isMyTurn, whoseTurn, connectedUsers, turnLetters, turnPoints, setTurnPoints, setIsInRoom, numberOfTilesLeft } = WrapperData();
+  const { winner, room, hostUser, isGameStarted, gameEnded, setIsGameStarted, timer, socket, isMyTurn, whoseTurn, connectedUsers, turnPoints, setIsInRoom, numberOfTilesLeft } = WrapperData();
 
-    const handleRoomQuit = () => {
-      setIsInRoom(false);
-      socket.emit("leave_room", room);
-    }
+  const handleRoomQuit = () => {
+    setIsInRoom(false);
+    socket.emit("leave_room", room);
+  }
 
-    const handleGameStart = () => {
+  const handleGameStart = () => {
+    if (liczbaGraczy < 2) {
+      alert("Do rozpoczęcia gry potrzeba minimum 2 graczy");
+    } else {
       setIsGameStarted(true);
       socket.emit("start_game", room);
     }
+  }
 
-    let odmianaPozostalo = "Pozostało"
-    let odmianaPlytek = "płytek";
-    const liczba = numberOfTilesLeft;
+  let odmianaPozostalo = "Pozostało"
+  let odmianaPlytek = "płytek";
+  let liczbaGraczy = connectedUsers.length;
+  const liczba = numberOfTilesLeft;
 
-    if(liczba % 10 === 2 || liczba % 10 === 3 || liczba % 10 === 4) {
-        odmianaPozostalo = "Pozostały"
-        odmianaPlytek = "płytki";
-    }
-    if(liczba == 1) {
-        odmianaPozostalo = "Pozostała";
-        odmianaPlytek = "Płytka";
-    } 
+  if (liczba % 10 === 2 || liczba % 10 === 3 || liczba % 10 === 4) {
+    odmianaPozostalo = "Pozostały"
+    odmianaPlytek = "płytki";
+  }
+  if (liczba == 1) {
+    odmianaPozostalo = "Pozostała";
+    odmianaPlytek = "Płytka";
+  }
 
   return (
     <div className='infoPanel'>
       <div className='infoPanelBox'>
-        <h3>Pokój {room} <br/>
-        {connectedUsers.length === 1 ? connectedUsers.length + " gracz" : connectedUsers.length + " graczy"}
+        <h3>Pokój {room} <br />
+          {liczbaGraczy === 1 ? liczbaGraczy + " gracz" : liczbaGraczy + " graczy"}
         </h3>
         <div className="userList">
           {connectedUsers.map((user) => (
             <div className='user' key={user.socketId}>
-              {hostUser.socketId == user.socketId ? 
+              {hostUser.socketId == user.socketId ?
                 (
                   <>
-                    { user.login } { user.gamePoints} gospodarz
+                    {user.login} {user.gamePoints} gospodarz
                   </>
-                ) 
-                :  
+                )
+                :
                 (
                   <>
-                  { user.login } { user.gamePoints }
+                    {user.login} {user.gamePoints}
                   </>
                 )
               }
-            
+
             </div>
           ))}
         </div>
       </div>
 
       <div className='infoPanelBox'>
-        {isGameStarted ? (
-        <>
-        <p>{odmianaPozostalo} <span style={{color: "#ff8503"}}>{liczba}</span> {odmianaPlytek}</p>
-        {isMyTurn ? 
-          (
+        {gameEnded ? (
+          <>
+            <p>Gra zakończona</p>
+            <p>Zwycięzca: {winner.login}</p>
+            <p>Liczba punktów: {winner.gamePoints}</p>
+          </>
+        )
+        :
+        ( <>
+          {isGameStarted ? (
             <>
-              <p>Twoja kolej</p>
-              <p>Potencjalne punkty {turnPoints}</p>
+              <p>{odmianaPozostalo} <span style={{ color: "#ff8503" }}>{liczba}</span> {odmianaPlytek}</p>
+              {isMyTurn ?
+                (
+                  <>
+                    <p>Twoja kolej</p>
+                    <p>Potencjalne punkty {turnPoints}</p>
+                  </>
+                )
+                :
+                <>
+                  <p>Kolej użytkownika {whoseTurn}</p>
+                  <p><span>&nbsp;&nbsp;</span></p>
+                </>
+  
+  
+              }
+            </>) : (
+            <>
+              <p>Liczba graczy {liczbaGraczy}/4</p>
+              {hostUser.socketId === socket.id ?
+                <>              
+                  <div className='startBtn'>
+                    <button disabled={liczbaGraczy > 1 ? false : true}onClick={handleGameStart}>Rozpocznij grę</button>
+                  </div>
+                </>
+                :
+                <>
+                  <p>Oczekiwanie na rozpoczęcie gry przez gospodarza</p>
+                </>
+              }
             </>
           )
-          :
-          <>
-           <p>Kolej użytkownika {whoseTurn}</p>
-           <p><span>&nbsp;&nbsp;</span></p>
+          }
           </>
-        
-
-        } 
-          <div className='quitBtn'>
-            <button onClick={handleRoomQuit}>Opuść pokój</button>
-          </div>
-        </> ) : (
-        <>
-        {hostUser.socketId === socket.id ?
-        <>
-         <div className='startBtn'>
-          <button onClick={handleGameStart}>Start</button>
-        </div>
-        </>
-        :
-        <>
-        Oczekiwanie na rozpoczęcie gry przez gospodarza
-        </>
-      }
-       
-        </>
         )
+        
         }
         
+        <div className='quitBtn'>
+          <button onClick={handleRoomQuit}>Opuść pokój</button>
+        </div>
+
       </div>
 
       <div className='infoPanelBox'>
         <p>Czas na wykonanie ruchu</p>
-        <p>{timer}</p>
-        {/* <button onClick={resetTimer}>reset timer</button> */}
+        <GameTimer
+          timer={props.timer}
+          setTimer={props.setTimer}
+          isTimerActive={props.isTimerActive}
+          setIsTimerActive={props.setIsTimerActive}
+        />
       </div>
     </div>
   )

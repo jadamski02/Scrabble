@@ -20,10 +20,10 @@ const createEmptyBoard = (rows, cols) => {
 
 const ScrabbleBoard = () => {
 
-  const { isMyTurn, socket, room, removeTileFromRack, board, setBoard, turnLetters, setTurnLetters, setTurnPoints } = WrapperData();
+  const { gameEnded, isMyTurn, socket, room, removeTileFromRack, board, setBoard, turnLetters, setTurnLetters, setTurnPoints } = WrapperData();
 
   const handleDragStartFromCell = (e, cell, isDraggable) => {
-    if(isDraggable) {
+    if(isDraggable && !gameEnded) {
       e.dataTransfer.setData("from", "board");
       e.dataTransfer.setData("letter", cell.letter);
       e.dataTransfer.setData("value", cell.value);
@@ -97,7 +97,7 @@ const ScrabbleBoard = () => {
     }
 
     /// do tablicy dodajemy wylozony kafelek z policzonymi punktami i aktualizujemy stan 
-    newLettersArr.push({letter, tileId, computedValue: value * bonusLetterMultiplier, rowIndex, colIndex})
+    newLettersArr.push({letter, tileId, value: value, computedValue: value * bonusLetterMultiplier, rowIndex, colIndex})
     setTurnLetters(newLettersArr);
 
     /// aktualizujemy stan planszy lokalnie
@@ -119,23 +119,27 @@ const ScrabbleBoard = () => {
       return () => {
         socket.off("update_board", handleUpdateBoard);
       };
-    }, [setBoard, socket]);
 
-    const confirmCellWithPrompt = (tileId, chosenLetter) => {
-      let updatedBoard;
-      updatedBoard = board.map((cell) => {
-        if(cell.tileId === tileId) {
-          return {...cell, letter: chosenLetter};
+    }, [setBoard, socket]);
+    
+    const updateCellWithPrompt = (tileId, chosenLetter) => {
+      let letterToUpdate = turnLetters.find(tl => tl.tileId === tileId);
+      letterToUpdate = { ...letterToUpdate, letter: chosenLetter };
+      let oldLettersArr = turnLetters.filter(tl => tl.tileId !== tileId);
+      if (letterToUpdate.tileId !== '') oldLettersArr.push(letterToUpdate);
+      setTurnLetters(oldLettersArr);
+    
+      let updatedBoard = board.map((cell) => {
+        if (cell.tileId === tileId) {
+          return { ...cell, letter: chosenLetter };
         }
         return cell;
-        });
-        setBoard(updatedBoard);
-        let letterToUpdate = turnLetters.filter(tl => tl.tileId === tileId);
-        letterToUpdate[0] = {...letterToUpdate[0], letter: chosenLetter};
-        let oldLettersArr = turnLetters.filter(tl => tl.tileId !== tileId);
-        oldLettersArr.push(letterToUpdate[0]);
-        setTurnLetters(oldLettersArr);
-    }
+      });
+    
+      setBoard(updatedBoard);
+      socket.emit("update_board", { room: room, board: updatedBoard });
+    };
+    
 
   return (
     <div className="scrabble-board">
@@ -176,7 +180,7 @@ const ScrabbleBoard = () => {
         } else if(cell.value !== '' && !isDraggable) {
           cellStyle="tileSet";
         }
-        if(cell.letter === '' && cell.value === 0) {
+        if(cell.value === 0) {
           return (
             <CellWithPrompt
               key={index}
@@ -189,7 +193,8 @@ const ScrabbleBoard = () => {
               letter={cell.letter}
               value={cell.value}
               tileId={cell.tileId}
-              confirmCellWithPrompt={confirmCellWithPrompt}
+              updateCellWithPrompt={updateCellWithPrompt}
+              handleDragStartFromCell={handleDragStartFromCell}
             />
           );
         } else {

@@ -18,7 +18,12 @@ function LoggedIn(props) {
         <>
             <GameArea />
             <div className='chat-area'>
-            <InfoPanel/>
+            <InfoPanel 
+            timer={props.timer}
+            setTimer={props.setTimer}
+            isTimerActive={props.isTimerActive}
+            setIsTimerActive={props.setIsTimerActive}
+            />
             <Chat />
             </div>
         </>
