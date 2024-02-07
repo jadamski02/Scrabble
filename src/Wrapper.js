@@ -3,10 +3,12 @@ import axios from 'axios';
 import io from 'socket.io-client';
 import Cookies from 'universal-cookie';
 import { doubleLetterScores, doubleWordScores, tripleLetterScores, tripleWordScores } from './components/ExtraPoints';
+import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
+import Home from './components/Home';
+import ScoresTable from './components/ScoresTable';
+import ScoresTabs from './components/ScoresTabs';
 
-import LoggedIn from './components/LoggedIn';
-import Login from './components/Login';
-import { SignUp } from './components/SignUp';
+
 
 const WrapperContext = createContext();
 export const WrapperData = () => useContext(WrapperContext);
@@ -53,10 +55,10 @@ export const Wrapper = () => {
     const [isTimerActive, setIsTimerActive] = useState(false);
     const [gameEnded, setGameEnded] = useState(false);
     const [winner, setWinner] = useState(null);
-
-    useEffect(() => {
-        console.table(turnLetters);
-    }, [turnLetters]);
+    const [highScores, setHighScores] = useState([]);
+    const [selectLettersModeActive, setSelectLettersModeActive] = useState(false);
+    const [scores, setScores] = useState([]);
+    const [userRanking, setUserRanking] = useState([]);
 
     axios.defaults.withCredentials = true;
 
@@ -106,10 +108,40 @@ export const Wrapper = () => {
                 console.error(error);
             }
         };
+
+        const getHighScores = async () => {
+            try {
+                const response = await axios.get("http://localhost:3001/scrabble/highscore");
+                setHighScores(response.data);
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        const getAllScores = async () => {
+            try {
+              const response = await axios.get("http://localhost:3001/scrabble/all-scores");
+              setScores(response.data);
+            } catch (error) {
+              console.error(error);
+            }
+          };
+
+        const getUserRanking = async () => {
+            try {
+                const response = await axios.get("http://localhost:3001/scrabble/user-ranking");
+                setUserRanking(response.data);
+              } catch (error) {
+                console.error(error);
+              }
+        };
         
         const fetchData = async () => {
             await checkLoginStatus();
             await getAvailableRooms();
+            await getHighScores();
+            await getAllScores();
+            await getUserRanking();
         };
 
         fetchData();
@@ -195,6 +227,7 @@ export const Wrapper = () => {
         socket.on("game_started", gameStartedListener);
         socket.on("reset_timer", resetTimerListener);
         socket.on("game_ended", gameEndedListener);
+        socket.on("update_high_scores", getHighScores)
 
         return () => {
             socket.off("updated_users_list", updatedUsersListListener);
@@ -794,26 +827,30 @@ export const Wrapper = () => {
 
     return (
 
-        <WrapperContext.Provider value={{ winner, gameEnded, restartTurnLetters, handleSkip, wordFromLetters, room, setRoom, getTiles, movePossible, turnCount, movesList, hostUser, setHostUser, isGameStarted, setIsGameStarted, gamePoints, setGamePoints, turnPoints, setTurnPoints, turnLetters, setTurnLetters, isMyTurn, whoseTurn, confirmMove, board, setBoard, loginMessage, setLoginMessage, handleLogOut, doLogin, doSignUp, connectedUsers, availableRooms, socket, shuffleTiles, getTiles, tilesOnRack, numberOfTilesLeft, setTilesOnRack, removeTileFromRack, removeTileFromBoard, isInRoom, setIsInRoom, login, setLogin, isAuth }}>
-            <>
-                <div className='app-container'>
-
-                    {isAuth ?
-                        <LoggedIn
+        <WrapperContext.Provider value={{ userRanking, scores, selectLettersModeActive, setSelectLettersModeActive, highScores, winner, gameEnded, restartTurnLetters, handleSkip, wordFromLetters, room, setRoom, getTiles, movePossible, turnCount, movesList, hostUser, setHostUser, isGameStarted, setIsGameStarted, gamePoints, setGamePoints, turnPoints, setTurnPoints, turnLetters, setTurnLetters, isMyTurn, whoseTurn, confirmMove, board, setBoard, loginMessage, setLoginMessage, doLogin, doSignUp, connectedUsers, availableRooms, socket, shuffleTiles, getTiles, tilesOnRack, numberOfTilesLeft, setTilesOnRack, removeTileFromRack, removeTileFromBoard, isInRoom, setIsInRoom, login, setLogin, isAuth }}>
+           <>
+           <BrowserRouter>
+            <Routes>
+                <Route path = '/' element={
+                    <Home
+                        handleLogOut={handleLogOut}
+                        isAuth={isAuth}
+                        isInRoom={isInRoom} 
                         timer={timer}
-                        setTimer={setTimer}
-                        isTimerActive={isTimerActive}
+                        setTimer={setTimer} 
+                        isTimerActive={isTimerActive} 
                         setIsTimerActive={setIsTimerActive}
-                        />
-                        :
-                        <>
-                            <Login />
-                            <SignUp />
-                        </>
-                    }
-
-                </div>
+                    />
+                    } />
+                    <Route path = '/wyniki' element={
+                    <ScoresTabs />
+                    } />
+            </Routes>
+           </BrowserRouter>
+           
+          
             </>
+
         </WrapperContext.Provider>
 
     )

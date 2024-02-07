@@ -1,10 +1,11 @@
-import React, { Children } from 'react';
+import React, { useState } from 'react';
 import PlaceForTile from './PlaceForTile';
 import { WrapperData } from '../Wrapper';
 
 function TileRack() {
 
-    const { gameEnded, tilesOnRack, setTilesOnRack, removeTileFromBoard, turnLetters, setTurnLetters } = WrapperData();
+    const { gameEnded, tilesOnRack, setTilesOnRack, removeTileFromBoard, turnLetters, setTurnLetters, selectLettersModeActive, setSelectLettersModeActive } = WrapperData();
+    const [selectedTiles, setSelectedTiles] = useState([]);
 
     const allowDropOnTileRack = (event) => {
       const isEmptyPlace = ['tileSet', 'tileMovable', 'letter', 'value'].indexOf(event.target.className) != -1;
@@ -64,28 +65,50 @@ function TileRack() {
         e.dataTransfer.setData("tileEvent", e);
     }
 
+    const confirmReplace = () => {
+      console.log('Replacing tiles:', selectedTiles);
+    };
 
+    const cancelReplace = () => {
+      setSelectedTiles([]);
+      setSelectLettersModeActive(false);
+    }
 
-  return (
-    <div className='lettersAndOptions'>
-
+    return (
+      <div className='lettersAndOptions'>
         <div className='tileRack'>
-        {tilesOnRack.map((placeForTile) =>
-
-        <PlaceForTile 
-        key={placeForTile.id} 
-        placeForTile={placeForTile} 
-        handleDropOnTileRack={handleDropOnTileRack}
-        handleDragStartFromTileRack={handleDragStartFromTileRack}
-        allowDropOnTileRack={allowDropOnTileRack}
-        />
-
-        )}
+        {selectLettersModeActive ? 
+        (
+          <>
+          <button className='confirmSelect' onClick={confirmReplace} disabled={selectedTiles.length === 0}>
+          &#10004;
+        </button>
+        </>
+        ) : null }
+          {tilesOnRack.map((placeForTile) => (
+            <PlaceForTile
+              key={placeForTile.id}
+              placeForTile={placeForTile}
+              handleDropOnTileRack={handleDropOnTileRack}
+              handleDragStartFromTileRack={handleDragStartFromTileRack}
+              allowDropOnTileRack={allowDropOnTileRack}
+              setSelectedTiles={setSelectedTiles}
+              selectedTiles={selectedTiles}
+            />
+          ))}
+          {selectLettersModeActive ? 
+        (
+          <>
+        <button className='rejectSelect' onClick={cancelReplace}>
+        &#10006;
+        </button>
+        </>
+        ) : null }
         </div>
 
-
-    </div>
-  )
-}
+       
+      </div>
+    );
+  }
 
 export default TileRack

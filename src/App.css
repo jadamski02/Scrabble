@@ -8,6 +8,12 @@ body {
   color: white;
 }
 
+.app-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
 .createRoomForm, 
 .login,
 .signUp {
@@ -16,6 +22,8 @@ body {
   padding: 3vh;
   margin: 3vh;
 }
+
+
 
 .createRoomForm {
   float: left;
@@ -47,7 +55,7 @@ body {
   text-align: center;
 }
 
-.loggedIn h1, h3 {
+.loggedIn h2, h3 {
   text-align: center;
   color: white;
 }
@@ -98,7 +106,7 @@ body {
 .createRoomForm button,
 .login button,
 .signUp button,
-.logOutBtn button {
+.headerBar button {
   margin: 1vh;
   padding: 1vh;
   border: 1px solid #ccc;
@@ -110,9 +118,22 @@ body {
   font-family: 'Syne';
 }
 
-.logOutBtn {
-  float: right;
+.headerBar {
+  position: relative;
 }
+
+.headerBar h1 {
+  text-align: center;
+  color: white;
+}
+
+.logOutBtnBox {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+}
+
 
 .availableRooms button {
   margin: 1vh;
@@ -308,12 +329,6 @@ body {
   padding: 4.5vh;
 }
 
-.app-container {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-}
-
 .game-area {
   display: flex;
   flex-direction: column;
@@ -376,18 +391,36 @@ body {
   font-size: 2vh;
 }
 
-.placeForTile {
+.placeForTile,
+.placeForTileToSelect,
+.placeForTileSelected {
   color: black;
   font-weight: 700;
-  border: 0.2vh solid black;
-  width: 4.5vh;
-  height: 4.5vh;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 0.6vh;
-  background-color: #154C68;
   position: relative;
+  border: 0.2vh solid black;
+  cursor: grab;
+}
+
+.placeForTile {
+  background-color: #154C68;
+  width: 4.5vh;
+  height: 4.5vh;
+}
+
+.placeForTileToSelect {
+  width: 4.5vh;
+  height: 4.5vh;
+  background-color: rgb(236, 223, 209);
+}
+
+.placeForTileSelected {
+  width: 4.5vh;
+  height: 4.5vh;
+  background-color: #f7d654;
 }
 
 .letter {
@@ -577,10 +610,119 @@ body {
   font-family: 'Syne';
 }
 
-.acceptLetter {
+.acceptLetter,
+.selectLetter {
   position: absolute;
   bottom: 0.1vh;
   left: 0.2vh;
   font-size: 1vh;
 }
+.singleHighScoreYear,
+.singleHighScoreMonth,
+.singleHighScoreWeek{
+  margin: 1vh;
+  padding: 1vh;
+  font-family: 'Verdana';
+  font-weight: 700;
+  width: fit-content;
+  border-radius: 0.5vh;
+  line-height: 2.5vh;
+  min-width: 15vw;
+  text-shadow: 0.2vh 0.2vh 0.5vh black;
+}
 
+.singleHighScoreMonth {
+  background-color: #f7d654;
+}
+
+.singleHighScoreWeek {
+  background-color: #c2d654;
+}
+
+.singleHighScoreYear {
+  background-color: #ef871e;
+}
+
+.highScore {
+  color: white;
+  margin: 3vh;
+  text-align: center;
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+.confirmSelect,
+.rejectSelect {
+  width: 6vh;
+  height: 4.5vh;
+  font-weight: 700;
+  font-size: 2vh;
+}
+
+.confirmSelect {
+  background-color: limegreen;
+}
+
+.rejectSelect {
+  background-color: crimson;
+}
+
+.highScoreLinkContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.highScoreLink {
+  padding: 1vh;
+  background-color:#fff;
+  color: black;
+  text-decoration: none;
+  border-radius: 0.5vh;
+  font-size: 1.6vh;
+  font-family: 'Syne';
+}
+
+.highScoreLink:hover {
+  background-color:#154C68;
+  color: white;
+}
+
+.tables-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  margin-top: 2vh;
+  gap: 4vh;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 1.2vh;
+  text-align: left;
+  border: 0.2vh solid black;
+}
+
+tbody tr {
+  background-color: #f2f2f2;
+}
+
+
+th {
+  background-color: #4CAF50;
+  color: white;
+}
+
+tbody tr:hover {
+  background-color: #ddd;
+}
+
+.tableDiv h2 {
+  color: white;
+  text-align: center;
+}

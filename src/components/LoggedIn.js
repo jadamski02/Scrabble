@@ -9,7 +9,7 @@ import InfoPanel from './InfoPanel';
 
 function LoggedIn(props) {
 
-  const { isInRoom, handleLogOut, login } = WrapperData();
+  const { isInRoom, login } = WrapperData();
 
   return (
     <>
@@ -31,12 +31,9 @@ function LoggedIn(props) {
         :
         <>
         <div className='loggedIn'>
-        <h1>Jesteś zalogowany jako {login}</h1>
+        <h2>Jesteś zalogowany jako {login}</h2>
         <AvailableRooms />
         <CreateRoomForm/>
-        <div className='logOutBtn'>
-          <button onClick={handleLogOut}>Wyloguj się</button>
-        </div>
         </div>
         </>
         }
