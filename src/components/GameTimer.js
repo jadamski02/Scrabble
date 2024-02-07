@@ -17,7 +17,6 @@ const GameTimer = (props) => {
       if(isMyTurn) {
         socket.emit("skipTurn", { room: room, login: login, cause: "endOfTime"});
       }
-        // props.setIsTimerActive(false);
     }
 
     return () => {

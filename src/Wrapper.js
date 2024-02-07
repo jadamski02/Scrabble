@@ -847,8 +847,6 @@ export const Wrapper = () => {
                     } />
             </Routes>
            </BrowserRouter>
-           
-          
             </>
 
         </WrapperContext.Provider>
